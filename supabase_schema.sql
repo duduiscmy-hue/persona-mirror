@@ -2,7 +2,7 @@
 -- 人格镜像馆 · Supabase 云端数据库 Schema
 -- 在 Supabase 控制台 → SQL Editor 中粘贴全部执行一次
 --
--- 重要：把下面所有 'OWNER_UID_HERE' 替换成你的【主人账号】的 auth.uid()
+-- 重要：把下面所有 'a095c54b-2c5b-4d76-bdfd-224701f76b01' 替换成你的【主人账号】的 auth.uid()
 --   （先注册主人账号，再到 Authentication → Users 复制其 ID）
 -- ============================================================
 
@@ -28,7 +28,7 @@ create table if not exists public.user_store (
 );
 alter table public.user_store enable row level security;
 create policy "us_select" on public.user_store for select
-  using (auth.uid() = uid OR auth.uid() = 'OWNER_UID_HERE');
+  using (auth.uid() = uid OR auth.uid() = 'a095c54b-2c5b-4d76-bdfd-224701f76b01');
 create policy "us_write" on public.user_store for insert with check (auth.uid() = uid);
 create policy "us_update" on public.user_store for update using (auth.uid() = uid) with check (auth.uid() = uid);
 create policy "us_delete" on public.user_store for delete using (auth.uid() = uid);
@@ -55,5 +55,5 @@ create table if not exists public.shadow_store (
 );
 alter table public.shadow_store enable row level security;
 create policy "sh_select" on public.shadow_store for select using (true);
-create policy "sh_write" on public.shadow_store for insert with check (auth.uid() = 'OWNER_UID_HERE');
-create policy "sh_update" on public.shadow_store for update using (auth.uid() = 'OWNER_UID_HERE') with check (auth.uid() = 'OWNER_UID_HERE');
+create policy "sh_write" on public.shadow_store for insert with check (auth.uid() = 'a095c54b-2c5b-4d76-bdfd-224701f76b01');
+create policy "sh_update" on public.shadow_store for update using (auth.uid() = 'a095c54b-2c5b-4d76-bdfd-224701f76b01') with check (auth.uid() = 'a095c54b-2c5b-4d76-bdfd-224701f76b01');

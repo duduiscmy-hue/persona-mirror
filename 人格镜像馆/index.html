@@ -403,7 +403,7 @@
 const CFG = {
   SUPABASE_URL: "https://wgkwlmqlippxonzlhzx.supabase.co",   // 你的 Project URL
   ANON_KEY:    "sb_publishable_pCKXjaZuYRK8hCifuvKoRw_L8zNQo9j",   // 你的 anon public key
-  OWNER_UID:   "a095c54b-2c5b-4d76-bdfd-224701f76b01"    // 主人账号 auth.uid：写分身预设 / 主人看全站私密档
+  OWNER_UID:   ""    // TODO: 填入主人账号的 auth.uid（Supabase → Authentication → Users 复制；用于写分身预设 / 主人看全站私密档）
 };
 const CLOUD = !!(CFG.SUPABASE_URL && CFG.ANON_KEY && window.supabase);
 const _sb = CLOUD ? window.supabase.createClient(CFG.SUPABASE_URL, CFG.ANON_KEY) : null;
