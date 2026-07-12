@@ -1141,11 +1141,11 @@ function runMatch(){
   const ok=document.getElementById('matchOther').value;
   const od=window.other_dna_val||getOtherDims(ok);
   const m=computeMatch(sd,od);const locked=otherIsLocked(ok);
-  let html='<div class="frost"><h3>⚖️ 匹配结果</h3><p style="font-size:1.4rem;" class="hl">契合度 '+m.score+'%</p><p class="sub">'+m.comp+'</p>';
-  html+='<h4 style="margin:12px 0 6px;">我方 8 维</h4>'+dnaBars(sd);
+  let html='<div class="frost"><h3>⚖️ 匹配结果</h3><p style="font-size:1.4rem;" class="h1">契合度 '+m.score+'%</p>';
+  html+='<h4 style="margin:12px 0 6px;">我方 8 维</h4>'+dnaBarsSimple(sd);
   if(locked){html+='<div class="frost" style="margin-top:12px;border:1px dashed var(--accent);"><p>🔒 对方完整人格数据已隐藏</p><p class="sub">请在档案馆对应公开档案页回答验证问题解锁</p></div>';}
-  else{html+='<h4 style="margin:12px 0 6px;">对方 8 维</h4>'+dnaBars(od);}
-  html+='</div>';
+  else{html+='<h4 style="margin:12px 0 6px;">对方 8 维</h4>'+dnaBarsSimple(od);}
+  html+=generateMatchHTML({dims:sd},{dims:od},m.score);html+='</div>';
   document.getElementById('matchResult').innerHTML=html;
   const arr=userMatch();arr.push({time:Date.now(),self:sd,other:od,score:m.score,comp:m.comp,locked:locked,otherLabel:labelOf(ok)});setUserMatch(arr);
   toast(locked?'匹配完成（对方数据待解锁）':'匹配完成并已归档');
@@ -1159,6 +1159,7 @@ function labelOf(val){
   return val;
 }
 function dnaBars(d){let h='';DIMS.forEach(x=>{h+='<div class="slider-row"><label>'+x.name+' <span class="deflink" onclick="showDimDef(\''+x.key+'\',event)">释义</span></label><div class="bar" style="flex:1;"><span style="width:'+d[x.key]+'%"></span></div><span class="num">'+d[x.key]+'</span></div>';});return h;}
+function dnaBarsSimple(d){let h='';DIMS.forEach(x=>{h+='<div class="slider-row"><label>'+x.name+'</label><div class="bar" style="flex:1;"><span style="width:'+d[x.key]+'%"></span></div><span class="num">'+d[x.key]+'</span></div>';});return h;}
 
 // 维度释义弹窗
 let defCard=null;
@@ -1586,6 +1587,19 @@ function renderMatchResult(profileA, profileB, percent, containerId) {
     </div>
   `;
   document.getElementById(containerId).innerHTML = html;
+}
+
+// 两人组合解析（供 runMatch 调用）
+function generateMatchHTML(profileA, profileB, score) {
+  const r = generateMatchAnalysis(profileA, profileB, score);
+  return [
+    '<div style="background:rgba(0,0,0,0.2);border-radius:12px;padding:16px;margin-bottom:16px;">',
+    '<div style="font-size:16px;font-weight:bold;color:#ffd700;margin-bottom:8px;">🔮 相遇解析：',r.typeA,' × ',r.typeB,'</div>',
+    '<div style="font-size:14px;color:#ddd;line-height:1.6;">',r.analysis,'</div></div>',
+    '<div style="background:rgba(0,0,0,0.2);border-radius:12px;padding:16px;">',
+    '<div style="font-size:16px;font-weight:bold;color:#4ecdc4;margin-bottom:8px;">💡 相处建议</div>',
+    '<div style="font-size:14px;color:#ddd;line-height:1.6;">',r.advice,'</div></div>'
+  ].join('');
 }
 </script>
 </body>
