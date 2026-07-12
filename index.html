@@ -367,9 +367,9 @@
        ④ 主人分身预设(镜像DNA/问答/情绪光谱)云同步
    ============================================================ */
 const CFG = {
-  SUPABASE_URL: "",   // TODO: 填入你的 Project URL
-  ANON_KEY:    "",   // TODO: 填入你的 anon public key
-  OWNER_UID:   ""    // TODO: 填入主人账号的 auth.uid（用于写分身预设/看全站）
+  SUPABASE_URL: "https://wgkwlmqlippxonzlhzx.supabase.co",   // 你的 Project URL
+  ANON_KEY:    "sb_publishable_pCKXjaZuYRK8hCifuvKoRw_L8zNQo9j",   // 你的 anon public key
+  OWNER_UID:   ""    // TODO: 填入主人账号的 auth.uid（Supabase → Authentication → Users 复制；用于写分身预设 / 主人看全站私密档）
 };
 const CLOUD = !!(CFG.SUPABASE_URL && CFG.ANON_KEY && window.supabase);
 const _sb = CLOUD ? window.supabase.createClient(CFG.SUPABASE_URL, CFG.ANON_KEY) : null;
@@ -725,23 +725,24 @@ function visitorLogin(){
   const p=(document.getElementById('vPass').value||'');
   if(!n){toast('请填写昵称');return;}
   if(!p){toast('请设置/输入密码');return;}
-  if(CLOUD){
-    visitorLoginCloud(n,p);return;
-  }
-  const acc=get(LS.accounts,{});
-  if(acc[n]){
-    if(acc[n]!==p){toast('密码错误');return;}
-  }else{acc[n]=p;set(LS.accounts,acc);toast('注册成功，欢迎 '+n);}
-  IS_OWNER=false;VNAME=n;set(LS.identity,'visitor');set(LS.vname,n);boot();
+  if(CLOUD){ visitorLoginCloud(n,p); return; }
+  visitorLoginLocal(n,p);
 }
 async function visitorLoginCloud(n,p){
   const r=await Cloud.auth(n,p);
-  if(!r.ok){toast('云端登录失败：'+(r.msg||'未知错误'));return;}
+  if(!r.ok){ toast('云端暂不可用，已切换为本地登录'); visitorLoginLocal(n,p); return; }
   if(r.isNew)toast('云端账号已创建，欢迎 '+n);else toast('已登录云端账号 '+n);
   try{await Cloud.pullUser();}catch(e){}
   if(Cloud.isOwner()){IS_OWNER=true;set(LS.identity,'owner');}
   else{IS_OWNER=false;set(LS.identity,'visitor');}
   VNAME=n;set(LS.vname,n);boot();
+}
+function visitorLoginLocal(n,p){
+  const acc=get(LS.accounts,{});
+  if(acc[n]){
+    if(acc[n]!==p){toast('密码错误');return;}
+  }else{acc[n]=p;set(LS.accounts,acc);toast('注册成功，欢迎 '+n);}
+  IS_OWNER=false;VNAME=n;set(LS.identity,'visitor');set(LS.vname,n);boot();
 }
 function logout(){
   if(CLOUD)Cloud.signOut();
