@@ -215,7 +215,7 @@
   <section class="panel" id="panel-shadow">
     <div class="glass" style="padding:24px;">
       <h2><span class="title-ic">🧬</span> 分身训练 · 主人预设镜像</h2>
-      <p class="sub">配置你的数字分身，供访客在镜像对话中与之交谈</p>
+      <p class="sub">配置你的数字分身，供访客在分身对话中与之交谈</p>
   <div class="grid2" style="margin-top:16px;">
     <div class="frost">
       <h3><span class="title-ic">🎭</span> 分身问答训练</h3>
@@ -227,7 +227,7 @@
     </div>
     <div class="frost">
       <h3><span class="title-ic">💗</span> 情绪光谱（星级 1-5）</h3>
-          <p class="sub">星级越高，镜像对话越优先使用该表达方式</p>
+          <p class="sub">星级越高，分身对话越优先使用该表达方式</p>
           <div id="emotionStars"></div>
         </div>
       </div>
@@ -239,11 +239,11 @@
     </div>
   </section>
 
-  <!-- 镜像对话 -->
+  <!-- 分身对话 -->
   <section class="panel" id="panel-chat">
     <div class="glass" style="padding:24px;">
-      <h2><span class="title-ic">💬</span> 镜像对话</h2>
-      <p class="sub" id="chatSub">与镜像分身自由对话，照见内心</p>
+      <h2><span class="title-ic">💬</span> 分身对话</h2>
+      <p class="sub" id="chatSub">与馆主的数字分身交谈</p>
       <div class="chatbox" id="chatBox"></div>
       <div style="display:flex;gap:8px;margin-top:12px;">
         <input id="chatInput" placeholder="说点什么…" onkeydown="if(event.key==='Enter')sendChat()">
@@ -767,7 +767,7 @@ function buildTabs(){
   const tabs=[
     {id:'test',label:'🎬 人格探测'},
     {id:'shadow',label:'🧬 分身训练',owner:true},
-    {id:'chat',label:'💬 镜像对话'},
+    {id:'chat',label:'💬 分身对话'},
     {id:'match',label:'⚖️ 人格匹配'},
     {id:'tarot',label:'🔮 塔罗彩蛋'},
     {id:'archive',label:'🗄️ 档案馆'}
@@ -779,7 +779,7 @@ function buildTabs(){
   });
 }
 const TABMAP={test:'panel-test',shadow:'panel-shadow',chat:'panel-chat',match:'panel-match',tarot:'panel-tarot',archive:'panel-archive'};
-const TABLAB={test:'🎬 人格探测',shadow:'🧬 分身训练',chat:'💬 镜像对话',match:'⚖️ 人格匹配',tarot:'🔮 塔罗彩蛋',archive:'🗄️ 档案馆'};
+const TABLAB={test:'🎬 人格探测',shadow:'🧬 分身训练',chat:'💬 分身对话',match:'⚖️ 人格匹配',tarot:'🔮 塔罗彩蛋',archive:'🗄️ 档案馆'};
 function switchTab(id){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById(TABMAP[id]).classList.add('active');
@@ -826,7 +826,8 @@ function renderQ(){
   html+='<button class="btn" id="nextBtn" onclick="nextQ()">'+(curQ===total-1?'完成测试 ✓':'下一题 →')+'</button></div>';
   document.getElementById('testStage').innerHTML=html;
 }
-function pickOpt(i){answers[curQ]={type:'opt',idx:i};renderQ();}
+let advTimer=null;
+function pickOpt(i){answers[curQ]={type:'opt',idx:i};renderQ();if(advTimer)clearTimeout(advTimer);advTimer=setTimeout(nextQ,300);}
 function toggleE(){
   const w=document.getElementById('eWrap');
   if(w.style.display==='none'){w.style.display='block';answers[curQ]={type:'e',text:document.getElementById('eText').value};renderQ();}
@@ -835,7 +836,7 @@ function toggleE(){
 function pickE(){
   const t=(document.getElementById('eText').value||'').trim();
   if(!t){toast('请先输入自定义内容');return;}
-  answers[curQ]={type:'e',text:t};renderQ();toast('已记录自定义作答');
+  answers[curQ]={type:'e',text:t};renderQ();if(advTimer)clearTimeout(advTimer);advTimer=setTimeout(nextQ,300);toast('已记录自定义作答');
 }
 function prevQ(){if(curQ>0){curQ--;renderQ();}}
 function nextQ(){
@@ -1033,17 +1034,28 @@ function ivNext(){
   shadowAnswers.push({q:SHADOW_QUESTIONS[shadowIdx],a:t});
   shadowIdx++;renderInterview();
 }
+function shadowKws(text){
+  const stop='的 了 我 你 他 她 它 是 在 和 与 也 都 就 而 及 或 把 被 让 给 对 这 那 有 没有 不 吗 呢 吧 啊 呀 哦 嗯 一种 一个 一样 自己 我们 你们 他们 觉得 感觉 可能 因为 所以 如果 但是 还是 怎么 什么 为什么 时候 一直 总是 其实 应该 想要 希望 真的 有点 一些 这种 那种 这个 那个'.split(' ');
+  const words=(text||'').replace(/[^\u4e00-\u9fa5a-zA-Z]/g,' ').split(/\s+/).filter(w=>w.length>=2&&stop.indexOf(w)<0);
+  return words;
+}
 function analyzeShadowQA(qa){
   const total=qa.length;
   const lens=qa.map(x=>(x.a||'').length);
   const avg=Math.round(lens.reduce((a,b)=>a+b,0)/(total||1));
   const style=avg>=40?'细腻绵长，习惯把感受拆开来讲':avg>=15?'简洁克制、点到即止':'极简留白，话不多但句句有重量';
+  const allAns=qa.map(x=>(x.a||'')).join(' ');
   const themes=['孤独','温柔','害怕','愤怒','自由','安静','思念','勇气','脆弱','期待','平静','迷茫','热爱','疲惫'];
   const found={};
   qa.forEach(x=>{themes.forEach(t=>{if((x.a||'').indexOf(t)>=0)found[t]=(found[t]||0)+1;});});
   const top=Object.keys(found).sort((a,b)=>found[b]-found[a]).slice(0,3);
-  const themeTxt=top.length?('高频主题：'+top.join('、')):'主题较为分散，暂无突出情绪倾向';
-  return '🎙️ 访谈分析（共 '+total+' 组问答）\n· 表达风格：'+style+'（平均回答 '+avg+' 字）\n· '+themeTxt+'\n· 分身语料已更新，镜像对话将更贴近以上底色。';
+  const themeTxt=top.length?('高频情绪主题：'+top.join('、')):'情绪主题较为分散，暂无突出倾向';
+  const kf={};shadowKws(allAns).forEach(w=>kf[w]=(kf[w]||0)+1);
+  const kws=Object.keys(kf).sort((a,b)=>kf[b]-kf[a]).slice(0,6);
+  const kwTxt=kws.length?('高频习惯词：'+kws.join('、')):'暂未提取到显著习惯词';
+  const meRatio=(allAns.match(/我|自己/g)||[]).length;
+  const selfTxt=meRatio>=total?('常以「我」为叙事中心，表达高度自我觉察'):(meRatio>0?('会以「我」分享真实经历'):'更习惯客观描述，少谈自己');
+  return '🎙️ 访谈分析（共 '+total+' 组问答）\n· 表达风格：'+style+'（平均回答 '+avg+' 字）\n· '+themeTxt+'\n· '+kwTxt+'\n· '+selfTxt+'\n· 分身语料已更新，分身对话将更贴近以上底色。';
 }
 function finishInterview(){
   const exist=get(LS.master_s,[]);
@@ -1055,14 +1067,14 @@ function finishInterview(){
   renderQA();toast('访谈完成，分身语料已更新');
 }
 
-// ---------- 镜像对话 ----------
+// ---------- 分身对话 ----------
 let chatProfile=null;
 function initChat(){
   const md=get(LS.master_d,defaultDna());
   const ms=get(LS.master_s,'');
   const me=get(LS.master_e,{});
-  if(IS_OWNER){chatProfile={name:'我的分身',dims:md,scenarios:ms,emo:me};document.getElementById('chatSub').textContent='与你的主人分身自由对话，照见内心';}
-  else{chatProfile={name:'馆主分身',dims:md,scenarios:ms,emo:me};document.getElementById('chatSub').textContent='与馆主预设的镜像分身交谈（访客专属）';}
+  if(IS_OWNER){chatProfile={name:'我的分身',dims:md,scenarios:ms,emo:me};document.getElementById('chatSub').textContent='与你的数字分身对话，检验 TA 是否像一个真实的你';}
+  else{chatProfile={name:'馆主分身',dims:md,scenarios:ms,emo:me};document.getElementById('chatSub').textContent='与馆主的数字分身交谈（访客专属）';}
   renderChat();
 }
 function renderChat(){const box=document.getElementById('chatBox');const logs=userChats();box.innerHTML='';
@@ -1074,23 +1086,46 @@ function sendChat(){
   setTimeout(()=>{const l=userChats();l.push({me:false,text:reply});setUserChats(l);renderChat();},450);
   inp.value='';renderChat();
 }
+function buildShadowProfile(p){
+  const sc=p.scenarios||[];
+  if(!sc.length)return {avg:0,styleShort:'自然',kws:[],asksBack:false};
+  const lens=sc.map(x=>(x.a||'').length);
+  const avg=Math.round(lens.reduce((a,b)=>a+b,0)/(sc.length||1));
+  const styleShort=avg>=40?'细腻':avg>=18?'平和':'简练';
+  const allAns=sc.map(x=>(x.a||'')).join(' ');
+  const freq={};shadowKws(allAns).forEach(w=>freq[w]=(freq[w]||0)+1);
+  const kws=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).slice(0,8);
+  const asksBack=/[?？]/.test(allAns)||/你怎么|你呢|你觉得|你会/.test(allAns);
+  return {avg,styleShort,kws,asksBack};
+}
+function matchScenario(text,sc){
+  if(!sc||!sc.length)return null;
+  const tk=shadowKws(text);if(!tk.length)return null;
+  let best=null,bestS=0;
+  sc.forEach(x=>{const pool=shadowKws((x.q||'')+' '+(x.a||''));let s=0;tk.forEach(w=>{if(pool.indexOf(w)>=0)s++;});if(s>bestS){bestS=s;best=x;}});
+  return bestS>0?best:null;
+}
 function mirrorReply(text,p){
+  const sp=buildShadowProfile(p);
   const top=DIM_KEYS.slice().sort((a,b)=>p.dims[b]-p.dims[a])[0];
   const nm=k=>DIM_MAP[k].name;
-  // 情绪光谱优先表达
-  let style='';
-  const emo=p.emo||{};let best=null,bestS=0;
-  EMOTIONS.forEach(e=>{const s=(emo[e.key]&&emo[e.key].stars)||0;if(s>bestS){bestS=s;best=e.name;}});
-  if(best&&bestS>=4)style='（带着'+best+'的底色）';
-  const replies=[
-    '我听见了'+style+'。作为你的镜像，我感受到你此刻的'+nm(top)+'特质在流动。',
-    '有意思'+style+'。如果我是你，我会顺着这份'+nm(top)+'继续探索下去。',
-    '你说的话让我想起：真正的理解，始于诚实面对自己。',
-    '我在你的话语里看到一面镜子——那里面也有我的影子。',
-    '不妨再深入一点？我想更靠近真实的你。'
-  ];
-  if(text.indexOf('?')>=0||text.indexOf('？')>=0)return '这个问题值得慢慢想'+style+'。从我的角度，答案或许藏在你的'+nm(top)+'之中。';
-  return replies[Math.floor(Math.random()*replies.length)];
+  const emo=p.emo||{};let best=null,bestS=0;EMOTIONS.forEach(e=>{const s=(emo[e.key]&&emo[e.key].stars)||0;if(s>bestS){bestS=s;best=e.name;}});
+  const userKw=shadowKws(text)[0]||'';
+  const echo=userKw?('你提到「'+userKw+'」，'):'';
+  // 1) 命中分身真实语料 → 用主人原话接话（逻辑最强）
+  const hit=matchScenario(text,p.scenarios);
+  if(hit&&hit.a){
+    const tail=(sp.asksBack?' 那你自己又是怎么想的呢？':(best?(' 此刻我带着'+best+'的心情听你说。'):''));
+    return echo+'关于这个，我的答案是：'+hit.a.trim()+tail;
+  }
+  // 2) 未命中语料：用风格+习惯词+维度做有逻辑的回应
+  const kw=sp.kws[0]?('关于「'+sp.kws[0]+'」'):'';
+  const body=sp.kws.length
+    ? ('我不太确定标准答案，但按我的习惯，面对这种事我会偏向'+kw+'那份'+sp.styleShort+'。')
+    : ('我倾向于用'+sp.styleShort+'的方式，去接住此刻的'+nm(top)+'。');
+  const q=sp.asksBack?' 你愿意多说一点吗？':'';
+  const emoHead=(best&&bestS>=4)?('（带着'+best+'）'):'';
+  return emoHead+echo+body+q;
 }
 function clearChat(){setUserChats([]);renderChat();toast('对话已清空');}
 
@@ -1270,7 +1305,7 @@ function sectionClear(kind){
   else if(kind==='match'){if(confirm('清空你的全部匹配记录？')){setUserMatch([]);if(CLOUD)Cloud.pushUser('pm_match_'+chatKey(),[]);toast('已清空匹配记录');showArch('match',null);}}
 }
 function dnaCard(r,full){
-  let h='<div class="card-rel"><span class="delbtn" onclick="delDNA(\''+r.id+'\',\''+(r.owner||r.name)+'\')">删除本条</span>';
+  let h='<div class="card-rel">'+(r._cloudForeign?'':'<span class="delbtn" onclick="delDNA(\''+r.id+'\',\''+(r.owner||r.name)+'\')">删除本条</span>');
   h+='<p class="hl">'+(r.pubName||r.name||'匿名')+'</p>';
   h+='<p class="sub">'+fmt(r.time)+' · 心情：'+(r.mood||'—')+'</p>';
   if(r.metacognition)h+='<p class="sub">元认知：'+(r.metacognition.length>60?r.metacognition.slice(0,60)+'…':r.metacognition)+'</p>';
@@ -1282,9 +1317,20 @@ function dnaCard(r,full){
   else{h+=dnaBars(r.dims);}
   h+='</div>';return h;
 }
-function renderDNA(body){
+async function renderDNA(body){
   let html='<div style="display:flex;justify-content:space-between;align-items:center;"><h3>🧬 人格DNA档案（私密）</h3><button class="btn btn-ghost btn-sm" onclick="sectionClear(\'dna\')">'+(IS_OWNER?'清空全部(全站)':'清空我的')+'</button></div>';
-  let list=IS_OWNER?getAllPriv():getPriv(VNAME);
+  let list;
+  if(IS_OWNER && CLOUD){
+    try{
+      const o=await Cloud.pullAllDna();
+      if(o){
+        let all=[];Object.keys(o).forEach(uid=>{(o[uid]||[]).forEach(r=>all.push({...r,owner:r.owner||uid,_cloudForeign:(uid!==_uid)}));});
+        list=all;
+        html+='<p class="sub" style="margin-top:8px;color:#a855f7;">已同步全站各设备私密归档（仅主人可见）</p>';
+      }
+    }catch(e){}
+  }
+  if(!list)list=IS_OWNER?getAllPriv():getPriv(VNAME);
   list=list.slice().reverse();
   if(!list.length)html+='<p class="sub" style="margin-top:10px;">暂无私密档案</p>';
   html+='<div class="grid2" style="margin-top:12px;">';
