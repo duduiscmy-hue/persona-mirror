@@ -12,6 +12,7 @@
   tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter','Noto Sans SC','sans-serif'] } } } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --neb1:#1a0b2e; --neb2:#2d1b4e; --neb3:#0f0524; --accent:#a855f7; --accent2:#7c3aed;
@@ -358,6 +359,105 @@
 
 <script>
 /* ============================================================
+   云端账号 + 数据同步层（Supabase）
+   - 未填真实凭证时 CLOUD=false，整站退化为纯本地模式（行为不变）
+   - 填好 CFG 并运行 supabase_schema.sql 后，自动启用：
+       ① 账号走 Supabase Auth（昵称+密码跨设备同一账号）
+       ② 私有数据 / 对话 / 塔罗 / 匹配 按用户同步
+       ③ 公开访客档案全站共享
+       ④ 主人分身预设(镜像DNA/问答/情绪光谱)云同步
+   ============================================================ */
+const CFG = {
+  SUPABASE_URL: "",   // TODO: 填入你的 Project URL
+  ANON_KEY:    "",   // TODO: 填入你的 anon public key
+  OWNER_UID:   ""    // TODO: 填入主人账号的 auth.uid（用于写分身预设/看全站）
+};
+const CLOUD = !!(CFG.SUPABASE_URL && CFG.ANON_KEY && window.supabase);
+const _sb = CLOUD ? window.supabase.createClient(CFG.SUPABASE_URL, CFG.ANON_KEY) : null;
+let _uid = null; // 当前登录用户的 auth.uid
+
+function _nickEmail(n){
+  const s = (n||"").trim().toLowerCase().replace(/[^a-z0-9]/g,"") || "user";
+  return s + "@persona.local";
+}
+
+const Cloud = {
+  ready: CLOUD,
+  uid: () => _uid,
+  isOwner: () => CLOUD && _uid && _uid === CFG.OWNER_UID,
+
+  /* 登录/注册：成功返回 {ok:true}，失败 {ok:false,msg} */
+  async auth(nick, pass){
+    if(!CLOUD) return {ok:false};
+    const email = _nickEmail(nick);
+    let r = await _sb.auth.signInWithPassword({email, password:pass});
+    if(r.error){
+      const s = await _sb.auth.signUp({email, password:pass});
+      if(s.error) return {ok:false, msg:s.error.message};
+      const u = s.data.user;
+      if(u){ await _sb.from("profiles").upsert({id:u.id, nickname:nick.trim()}, {onConflict:"id"}); }
+      const li = await _sb.auth.signInWithPassword({email, password:pass});
+      _uid = (li.data && li.data.user) ? li.data.user.id : (u ? u.id : null);
+      return {ok:true, isNew:true};
+    }
+    _uid = r.data.user.id;
+    return {ok:true};
+  },
+  async signOut(){ if(CLOUD) await _sb.auth.signOut(); _uid=null; },
+
+  /* 私有存储（按用户）: user_store(uid,key) <-> 本地某 key */
+  async pullUser(){ // 把云端该用户全部私有数据拉回本地
+    if(!CLOUD || !_uid) return;
+    const {data} = await _sb.from("user_store").select("key,value").eq("uid",_uid);
+    (data||[]).forEach(r => { try{ localStorage.setItem(r.key, JSON.stringify(r.value)); }catch(e){} });
+  },
+  async pushUser(key, value){ // 本地某个 key 变更后镜像到云端
+    if(!CLOUD || !_uid) return;
+    await _sb.from("user_store").upsert({uid:_uid, key, value}, {onConflict:"uid,key"});
+  },
+  /* 主人拉取全站私有DNA（档案馆→全部人格DNA） */
+  async pullAllDna(){
+    if(!Cloud.isOwner()) return null;
+    const {data} = await _sb.from("user_store").select("uid,value").eq("key","pm_vpriv");
+    if(!data) return null;
+    const o={}; data.forEach(r=>{ o[r.uid] = r.value; });
+    return o;
+  },
+
+  /* 公开访客档案：public_store（全站可读） */
+  async pullPublic(){
+    if(!CLOUD) return null;
+    const {data} = await _sb.from("public_store").select("id,uid,value");
+    if(!data) return null;
+    const o={}; data.forEach(r=>{ o[r.uid] = (o[r.uid]||[]).concat([{...r.value, _id:r.id}]); });
+    return o;
+  },
+  async pushPublicRow(row){ // row 含 pubName/contact/question/keywords/scores/...
+    if(!CLOUD || !_uid) return null;
+    const {data} = await _sb.from("public_store").insert({uid:_uid, key:"pub", value:row}).select("id").single();
+    return data ? data.id : null;
+  },
+  async delPublicRow(id){
+    if(!CLOUD) return;
+    await _sb.from("public_store").delete().eq("id", id);
+  },
+
+  /* 主人分身预设：shadow_store（全站可读，仅主人可写） */
+  async pullShadow(){
+    if(!CLOUD) return null;
+    const {data} = await _sb.from("shadow_store").select("value").eq("id","owner").maybeSingle();
+    return data ? data.value : null;
+  },
+  async pushShadow(value){
+    if(!Cloud.isOwner()) return false;
+    await _sb.from("shadow_store").upsert({id:"owner", value});
+    return true;
+  }
+};
+
+</script>
+<script>
+/* ============================================================
    人格镜像馆 — 单文件应用（v3）
    身份：固定主人(密码duduiscmy) / 访客(昵称+密码账号)
    ============================================================ */
@@ -596,14 +696,14 @@ function set(k,v){localStorage.setItem(k,JSON.stringify(v));}
 function fmt(ts){if(!ts)return '';const d=new Date(ts);if(isNaN(d)||d.getFullYear()<1970)return '';const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());}
 function chatKey(){return IS_OWNER?'owner':('v_'+VNAME);}
 function userTarot(){return get('pm_tarot_'+chatKey(),[]);}
-function setUserTarot(a){set('pm_tarot_'+chatKey(),a);}
+function setUserTarot(a){set('pm_tarot_'+chatKey(),a);if(CLOUD)Cloud.pushUser('pm_tarot_'+chatKey(),a);}
 function userChats(){return get('pm_chats_'+chatKey(),[]);}
-function setUserChats(a){set('pm_chats_'+chatKey(),a);}
+function setUserChats(a){set('pm_chats_'+chatKey(),a);if(CLOUD)Cloud.pushUser('pm_chats_'+chatKey(),a);}
 function userMatch(){return get('pm_match_'+chatKey(),[]);}
-function setUserMatch(a){set('pm_match_'+chatKey(),a);}
+function setUserMatch(a){set('pm_match_'+chatKey(),a);if(CLOUD)Cloud.pushUser('pm_match_'+chatKey(),a);}
 // 访客分区
 function getPriv(nick){return get(LS.vpriv,{})[nick]||[];}
-function setPriv(nick,arr){const o=get(LS.vpriv,{});o[nick]=arr;set(LS.vpriv,o);}
+function setPriv(nick,arr){const o=get(LS.vpriv,{});o[nick]=arr;set(LS.vpriv,o);if(CLOUD)Cloud.pushUser(LS.vpriv,o);}
 function getAllPriv(){const o=get(LS.vpriv,{});let all=[];Object.keys(o).forEach(k=>all=all.concat(o[k].map(r=>({...r,owner:k}))));return all;}
 function getPub(nick){return get(LS.vpub,{})[nick]||[];}
 function setPub(nick,arr){const o=get(LS.vpub,{});o[nick]=arr;set(LS.vpub,o);}
@@ -626,13 +726,28 @@ function visitorLogin(){
   const p=(document.getElementById('vPass').value||'');
   if(!n){toast('请填写昵称');return;}
   if(!p){toast('请设置/输入密码');return;}
+  if(CLOUD){
+    visitorLoginCloud(n,p);return;
+  }
   const acc=get(LS.accounts,{});
   if(acc[n]){
     if(acc[n]!==p){toast('密码错误');return;}
   }else{acc[n]=p;set(LS.accounts,acc);toast('注册成功，欢迎 '+n);}
   IS_OWNER=false;VNAME=n;set(LS.identity,'visitor');set(LS.vname,n);boot();
 }
-function logout(){localStorage.removeItem(LS.identity);localStorage.removeItem(LS.vname);location.reload();}
+async function visitorLoginCloud(n,p){
+  const r=await Cloud.auth(n,p);
+  if(!r.ok){toast('云端登录失败：'+(r.msg||'未知错误'));return;}
+  if(r.isNew)toast('云端账号已创建，欢迎 '+n);else toast('已登录云端账号 '+n);
+  try{await Cloud.pullUser();}catch(e){}
+  if(Cloud.isOwner()){IS_OWNER=true;set(LS.identity,'owner');}
+  else{IS_OWNER=false;set(LS.identity,'visitor');}
+  VNAME=n;set(LS.vname,n);boot();
+}
+function logout(){
+  if(CLOUD)Cloud.signOut();
+  localStorage.removeItem(LS.identity);localStorage.removeItem(LS.vname);location.reload();
+}
 function boot(){
   document.getElementById('gate').style.display='none';
   document.getElementById('app').style.display='block';
@@ -640,7 +755,12 @@ function boot(){
   if(IS_OWNER){badge.textContent='🌟 网站主人';badge.className='rolebadge tag-owner';}
   else{badge.textContent='👤 '+VNAME;badge.className='rolebadge tag-visitor';}
   buildTabs();initTest();initShadow();initChat();initMatch();initTarot();initStars();
+  if(IS_OWNER && CLOUD && Cloud.isOwner()){loadCloudShadow();}
   document.getElementById('clearAllBtn').style.display=IS_OWNER?'inline-block':'none';
+}
+async function loadCloudShadow(){
+  const v=await Cloud.pullShadow();
+  if(v){ if(v.s)set(LS.master_s,v.s); if(v.e)set(LS.master_e,v.e); if(v.d)set(LS.master_d,v.d); initShadow(); }
 }
 
 // ---------- 导航 ----------
@@ -808,7 +928,7 @@ function openArchiveModal(){
 function closeArchiveModal(){document.getElementById('archiveModal').classList.remove('open');toast('已存为本地草稿，可稍后在档案馆归档');}
 function choosePrivate(){window._archMode='private';document.getElementById('publicForm').style.display='none';document.getElementById('confirmArchiveBtn').style.display='block';}
 function choosePublic(){window._archMode='public';document.getElementById('publicForm').style.display='block';document.getElementById('confirmArchiveBtn').style.display='block';}
-function confirmArchive(){
+async function confirmArchive(){
   if(!lastResult){closeArchiveModal();return;}
   const rec={id:'v'+Date.now()+Math.floor(Math.random()*999),name:VNAME||'匿名',
     mood:lastResult.mood,metacognition:lastResult.meta,dims:lastResult.dims,
@@ -824,6 +944,7 @@ function confirmArchive(){
     rec.isPrivate=false;rec.pubName=pn;rec.contact=(document.getElementById('pubContact').value||'').trim();
     rec.question=q;rec.keywords=ks.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
     const arr=getPub(VNAME);arr.push(rec);setPub(VNAME,arr);
+    if(CLOUD){try{const cid=await Cloud.pushPublicRow(rec);if(cid){rec._cid=cid;rec.id=cid;setPub(VNAME,arr);}}catch(e){}}
     toast('🌐 已公开归档');
   }else{toast('请选择归档方式');return;}
   closeArchiveModal();
@@ -874,6 +995,9 @@ function saveShadow(){
   });
   set(LS.master_s,qa);
   set(LS.master_d,window.master_dna_val||get(LS.master_d,defaultDna()));
+  if(Cloud.isOwner()){
+    Cloud.pushShadow({s:qa, e:get(LS.master_e,{}), d:get(LS.master_d,defaultDna())});
+  }
   toast('💾 分身已保存');
 }
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -1138,12 +1262,17 @@ function showArch(kind,btn){
 }
 function sectionClear(kind){
   if(kind==='dna'){
-    if(IS_OWNER){if(confirm('清空全站所有私密DNA档案？')){set(LS.vpriv,{});toast('已清空全部人格DNA档案');showArch('dna',document.querySelector('.arch-btn'));}}
+    if(IS_OWNER){if(confirm('清空全站所有私密DNA档案？')){set(LS.vpriv,{});if(CLOUD)Cloud.pushUser(LS.vpriv,{});toast('已清空全部人格DNA档案');showArch('dna',document.querySelector('.arch-btn'));}}
     else{if(confirm('清空你本人的全部私密DNA档案？')){setPriv(VNAME,[]);toast('已清空你的DNA档案');showArch('dna',document.querySelector('.arch-btn'));}}
-  }else if(kind==='public'){if(confirm('清空全站公开访客档案？')){set(LS.vpub,{});toast('已清空公开档案');showArch('public',document.querySelector('.arch-btn'));}}
-  else if(kind==='tarot'){if(confirm('清空你的全部塔罗抽牌记录？')){setUserTarot([]);toast('已清空塔罗记录');showArch('tarot',null);}}
-  else if(kind==='chat'){if(confirm('清空你的全部对话记录？')){setUserChats([]);toast('已清空对话');showArch('chat',null);}}
-  else if(kind==='match'){if(confirm('清空你的全部匹配记录？')){setUserMatch([]);toast('已清空匹配记录');showArch('match',null);}}
+  }else if(kind==='public'){
+    if(confirm('清空全站公开访客档案？')){
+      if(CLOUD){getAllPub().forEach(r=>Cloud.delPublicRow(r._cid||r.id));}
+      set(LS.vpub,{});toast('已清空公开档案');showArch('public',document.querySelector('.arch-btn'));
+    }
+  }
+  else if(kind==='tarot'){if(confirm('清空你的全部塔罗抽牌记录？')){setUserTarot([]);if(CLOUD)Cloud.pushUser('pm_tarot_'+chatKey(),[]);toast('已清空塔罗记录');showArch('tarot',null);}}
+  else if(kind==='chat'){if(confirm('清空你的全部对话记录？')){setUserChats([]);if(CLOUD)Cloud.pushUser('pm_chats_'+chatKey(),[]);toast('已清空对话');showArch('chat',null);}}
+  else if(kind==='match'){if(confirm('清空你的全部匹配记录？')){setUserMatch([]);if(CLOUD)Cloud.pushUser('pm_match_'+chatKey(),[]);toast('已清空匹配记录');showArch('match',null);}}
 }
 function dnaCard(r,full){
   let h='<div class="card-rel"><span class="delbtn" onclick="delDNA(\''+r.id+'\',\''+(r.owner||r.name)+'\')">删除本条</span>';
@@ -1167,7 +1296,24 @@ function renderDNA(body){
   list.forEach(r=>html+='<div class="frost">'+dnaCard(r,true)+'</div>');
   html+='</div>';body.innerHTML=html;
 }
-function renderPublic(body){
+async function renderPublic(body){
+  if(CLOUD){
+    try{
+      const o=await Cloud.pullPublic();
+      if(o){
+        const merged=get(LS.vpub,{});
+        Object.keys(o).forEach(uid=>{
+          const key=(uid===_uid)?VNAME:uid;
+          merged[key]=merged[key]||[];
+          (o[uid]||[]).forEach(r=>{
+            r.owner=key; if(!r.id)r.id=r._id; if(r._id)r._cid=r._id;
+            if(!merged[key].some(x=>x.id===r.id))merged[key].push(r);
+          });
+        });
+        set(LS.vpub,merged);
+      }
+    }catch(e){}
+  }
   let html='<div style="display:flex;justify-content:space-between;align-items:center;"><h3>🌐 公开访客档案</h3><button class="btn btn-ghost btn-sm" onclick="sectionClear(\'public\')">清空全部</button></div>';
   const all=getAllPub().slice().reverse();
   if(!all.length)html+='<p class="sub" style="margin-top:10px;">暂无公开档案</p>';
@@ -1198,6 +1344,7 @@ function delDNA(id,owner){
 function delPub(id,owner){
   if(!confirm('删除本条公开档案？'))return;
   const o=get(LS.vpub,{});for(const k in o){o[k]=o[k].filter(r=>r.id!==id);}set(LS.vpub,o);
+  if(CLOUD){const rec=getAllPub().find(x=>x.id===id)||getPub(owner).find(x=>x.id===id);const cid=rec&&rec._cid?rec._cid:id;Cloud.delPublicRow(cid);}
   toast('已删除');showArch('public',document.querySelector('.arch-btn'));
 }
 function myLatestDims(){
@@ -1296,7 +1443,11 @@ let toastTimer=null;
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
 
 // ---------- 启动 ----------
-(function(){
+(async function(){
+  if(CLOUD){
+    try{const {data}=await _sb.auth.getSession();if(data&&data.session){_uid=data.session.user.id;try{await Cloud.pullUser();}catch(e){}}}
+    catch(e){}
+  }
   const id=get(LS.identity);
   if(id==='owner'){IS_OWNER=true;VNAME=get(LS.vname,'');boot();}
   else if(id==='visitor'){IS_OWNER=false;VNAME=get(LS.vname,'');boot();}
