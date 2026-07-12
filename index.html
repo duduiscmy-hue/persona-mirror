@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>人格镜像馆 · Persona Mirror</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter','Noto Sans SC','sans-serif'] } } } }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --neb1:#1a0b2e; --neb2:#2d1b4e; --neb3:#0f0524; --accent:#a855f7; --accent2:#7c3aed;
+    --glass:rgba(255,255,255,0.06); --glass-bd:rgba(168,85,247,0.25);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;font-family:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;color:#e9e3ff;background:#0f0524;min-height:100%;}
+  body{overflow-x:hidden;}
+  #stars{position:fixed;inset:0;z-index:0;pointer-events:none;}
+  .wrap{position:relative;z-index:2;max-width:1120px;margin:0 auto;padding:22px 18px 90px;}
+  .glass{background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--glass-bd);border-radius:20px;box-shadow:0 8px 40px rgba(124,58,237,0.18);transition:transform .25s ease,box-shadow .25s ease;}
+  .glass:hover{transform:translateY(-4px);box-shadow:0 14px 50px rgba(168,85,247,0.32);}
+  .title-ic{font-size:1.1em;filter:drop-shadow(0 0 6px rgba(168,85,247,.6));}
+  h1{font-weight:800;letter-spacing:.5px;background:linear-gradient(135deg,#e9d5ff,#c4b5fd,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:1.7rem;}
+  h2{font-weight:700;color:#d8b4fe;font-size:1.25rem;}
+  h3{font-weight:700;color:#e9d5ff;font-size:1.05rem;}
+  .sub{opacity:.6;font-size:.82rem;color:#c4b5fd;}
+  .dim{opacity:.85;}
+  .tabbar{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0;}
+  .tab{padding:10px 16px;border-radius:14px;border:1px solid var(--glass-bd);background:rgba(255,255,255,0.04);cursor:pointer;font-size:.92rem;transition:.2s;user-select:none;white-space:nowrap;}
+  .tab:hover{background:rgba(168,85,247,0.18);transform:translateY(-2px);}
+  .tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent;box-shadow:0 6px 22px rgba(168,85,247,.45);}
+  .panel{display:none;}
+  .panel.active{display:block;animation:fade .4s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+  .btn{padding:11px 20px;border-radius:14px;border:none;cursor:pointer;font-size:.92rem;font-weight:600;transition:.2s;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 6px 20px rgba(168,85,247,.4);}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(168,85,247,.55);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+  .btn-ghost{background:rgba(255,255,255,0.06);border:1px solid var(--glass-bd);color:#e9e3ff;box-shadow:none;}
+  .btn-ghost:hover{background:rgba(168,85,247,0.18);}
+  .btn-sm{padding:7px 13px;font-size:.8rem;border-radius:11px;}
+  .btn-xs{padding:4px 10px;font-size:.72rem;border-radius:9px;}
+  .opt{display:block;width:100%;text-align:left;padding:13px 16px;margin:8px 0;border-radius:14px;border:1px solid var(--glass-bd);background:rgba(255,255,255,0.04);cursor:pointer;transition:.18s;color:#e9e3ff;}
+  .opt:hover{background:rgba(168,85,247,0.16);transform:translateX(4px);}
+  .opt.sel{background:linear-gradient(135deg,rgba(168,85,247,.35),rgba(124,58,237,.35));border-color:var(--accent);}
+  .e-card{border:2px solid #a855f7 !important;box-shadow:0 0 16px rgba(168,85,247,.4) inset;}
+  .e-card:hover{background:rgba(168,85,247,0.12);}
+  textarea,input{width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--glass-bd);border-radius:12px;color:#e9e3ff;padding:11px 13px;font-family:inherit;font-size:.92rem;outline:none;}
+  textarea:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(168,85,247,.2);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media(max-width:780px){.grid2{grid-template-columns:1fr;}}
+  .pill{display:inline-block;padding:3px 11px;border-radius:999px;font-size:.74rem;background:rgba(168,85,247,.2);border:1px solid var(--glass-bd);margin:2px;}
+  .frost{background:rgba(255,255,255,0.04);border:1px solid var(--glass-bd);border-radius:14px;padding:14px;}
+  .lock{filter:blur(7px);user-select:none;opacity:.5;}
+  .star{font-size:1.5rem;cursor:pointer;color:#4b3a6b;transition:.15s;}
+  .star.on{color:#fbbf24;text-shadow:0 0 8px rgba(251,191,36,.7);}
+  .overlay{position:fixed;inset:0;z-index:50;background:radial-gradient(circle at 50% 30%,rgba(45,27,78,.96),rgba(15,5,36,.98));display:flex;align-items:center;justify-content:center;padding:20px;}
+  .overlay .box{max-width:460px;width:100%;}
+  .modal{position:fixed;inset:0;z-index:60;background:rgba(10,4,28,.78);display:none;align-items:center;justify-content:center;padding:20px;}
+  .modal.open{display:flex;}
+  .modal .box{max-width:580px;width:100%;max-height:90vh;overflow:auto;}
+  .arch-btn{padding:10px 13px;border-radius:13px;border:1px solid var(--glass-bd);background:rgba(255,255,255,0.04);cursor:pointer;font-size:.83rem;transition:.2s;flex:1;text-align:center;}
+  .arch-btn.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent;}
+  .arch-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+  .flip{width:150px;height:255px;perspective:1000px;cursor:pointer;margin:8px;}
+  .flip-in{position:relative;width:100%;height:100%;transition:transform .7s;transform-style:preserve-3d;}
+  .flip.flipped .flip-in{transform:rotateY(180deg);}
+  .flip-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:14px;overflow:hidden;border:1px solid var(--glass-bd);}
+  .flip-back{transform:rotateY(180deg);}
+  .msg{max-width:78%;padding:11px 14px;border-radius:16px;margin:8px 0;font-size:.9rem;line-height:1.5;}
+  .msg-me{margin-left:auto;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-bottom-right-radius:4px;}
+  .msg-you{background:rgba(255,255,255,0.07);border-bottom-left-radius:4px;}
+  .chatbox{height:420px;overflow:auto;padding:10px;background:rgba(0,0,0,0.18);border-radius:14px;border:1px solid var(--glass-bd);}
+  .progress{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;}
+  .progress>span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:.3s;}
+  .bar{height:9px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;}
+  .bar>span{display:block;height:100%;background:linear-gradient(90deg,#c4b5fd,#a855f7);}
+  .slider-row{display:flex;align-items:center;gap:12px;margin:9px 0;}
+  .slider-row label{width:84px;font-size:.82rem;}
+  .slider-row input[type=range]{flex:1;accent-color:var(--accent);}
+  .slider-row span{width:38px;text-align:right;font-size:.82rem;color:#d8b4fe;}
+  .deflink{font-size:.72rem;color:#a855f7;cursor:pointer;text-decoration:underline;margin-left:6px;}
+  .defcard{position:fixed;z-index:80;background:rgba(28,14,52,.98);border:1px solid var(--accent);border-radius:14px;padding:14px;max-width:300px;box-shadow:0 10px 40px rgba(168,85,247,.5);font-size:.85rem;line-height:1.6;}
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-thumb{background:rgba(168,85,247,.4);border-radius:9px;}
+  .hl{color:#d8b4fe;font-weight:600;}
+  .num{color:#e9d5ff;font-weight:700;}
+  .rolebadge{font-size:.72rem;padding:3px 10px;border-radius:999px;color:#1a0b2e;font-weight:700;}
+  .tag-owner{background:linear-gradient(135deg,#f59e0b,#d97706);}
+  .tag-visitor{background:linear-gradient(135deg,#38bdf8,#0ea5e9);}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(20,10,40,.95);border:1px solid var(--accent);padding:11px 20px;border-radius:14px;z-index:99;opacity:0;transition:.3s;box-shadow:0 8px 30px rgba(168,85,247,.5);}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .delbtn{position:absolute;top:10px;right:10px;background:rgba(239,68,68,.18);border:1px solid rgba(239,68,68,.5);color:#fca5a5;font-size:.7rem;padding:3px 9px;border-radius:9px;cursor:pointer;}
+  .delbtn:hover{background:rgba(239,68,68,.35);}
+  .card-rel{position:relative;}
+
+  /* ===== 轻奢暗紫登录网关 ===== */
+  #gate{background:linear-gradient(160deg,#2A1E42 0%,#241a39 55%,#1f1730 100%);overflow-y:auto;}
+  #gate .gate-bg{position:absolute;inset:0;pointer-events:none;}
+  #gate .gate-bg::before{content:"";position:absolute;inset:0;
+    background:
+      radial-gradient(circle at 22% 18%,rgba(184,164,237,.20),transparent 42%),
+      radial-gradient(circle at 80% 78%,rgba(157,125,223,.18),transparent 46%),
+      radial-gradient(circle at 50% 50%,rgba(157,125,223,.06),transparent 70%);}
+  #gate .gate-bg::after{content:"";position:absolute;inset:0;opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+  #gate .gate-card{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);
+    border-radius:18px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:0 24px 60px rgba(0,0,0,.35);}
+  #gate .gate-label{font-size:12px;font-weight:300;letter-spacing:.04em;color:rgba(255,255,255,.5);}
+  #gate .gate-input{width:100%;padding:8px 2px;background:transparent;border:0;outline:0;
+    color:#fff;font-size:15px;font-weight:300;letter-spacing:.02em;}
+  #gate .gate-input::placeholder{color:rgba(255,255,255,.25);}
+  #gate .gate-line-base{position:absolute;left:0;right:0;bottom:0;height:1px;background:rgba(255,255,255,.16);}
+  #gate .gate-line-active{position:absolute;left:0;right:0;bottom:0;height:1px;width:0;
+    background:#B8A4ED;transition:width .4s ease;}
+  #gate .group:focus-within .gate-line-active{width:100%;}
+  #gate .gate-divider{height:1px;width:100%;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);}
+  #gate .gate-btn-primary{display:block;width:100%;padding:15px 0;border-radius:12px;
+    background:linear-gradient(135deg,#9D7DDF,#B8A4ED);color:#fff;border:0;cursor:pointer;
+    font-size:15px;font-weight:500;letter-spacing:.08em;
+    box-shadow:0 12px 30px rgba(157,125,223,.4);transition:transform .25s ease,box-shadow .25s ease;}
+  #gate .gate-btn-primary:hover{transform:translateY(-2px);box-shadow:0 18px 40px rgba(157,125,223,.5);}
+  #gate .gate-btn-primary:active{transform:translateY(0);}
+  #gate .gate-btn-ghost{padding:9px 22px;border-radius:10px;background:transparent;
+    border:1px solid rgba(255,255,255,.22);color:rgba(255,255,255,.75);cursor:pointer;
+    font-size:13px;font-weight:300;letter-spacing:.06em;transition:border-color .25s ease,color .25s ease;}
+  #gate .gate-btn-ghost:hover{border-color:#B8A4ED;color:#fff;}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<!-- ========== 身份进入网关（轻奢暗紫重构）========== -->
+<div id="gate" class="fixed inset-0 z-50 flex items-center justify-center px-8 py-20" style="display:none;">
+  <div class="gate-bg"></div>
+  <div class="relative z-10 w-full max-w-lg mx-auto">
+    <header class="text-center mb-16">
+      <h1 class="text-3xl font-light tracking-[0.18em] text-white">人格镜像馆</h1>
+      <p class="mt-3 text-sm font-light tracking-wide text-white/35">在星云深处，照见自己的倒影</p>
+    </header>
+
+    <!-- 上方次要模块：网站主人验证（视觉弱化、占比缩小） -->
+    <section class="gate-card w-full max-w-sm mx-auto px-8 py-7">
+      <div class="flex items-center gap-2 mb-6">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8A4ED" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        <h2 class="text-sm font-normal tracking-wide text-white/60">网站主人验证</h2>
+      </div>
+      <label class="gate-label block mb-2">问题：我是谁？</label>
+      <div class="group relative mb-6">
+        <input id="ownerAns" class="gate-input" placeholder="请输入标准答案" onkeydown="if(event.key==='Enter')tryOwner()">
+        <div class="gate-line-base"></div><div class="gate-line-active"></div>
+      </div>
+      <div class="flex justify-end">
+        <button class="gate-btn-ghost" onclick="tryOwner()">验证进入</button>
+      </div>
+    </section>
+
+    <!-- 48px 超大留白 + 极淡渐变分割线 -->
+    <div class="my-12"><div class="gate-divider"></div></div>
+
+    <!-- 下方核心模块：访客登录注册（通栏放大，视觉重心） -->
+    <section class="gate-card w-full px-10 py-10">
+      <div class="flex items-center gap-2 mb-8">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B8A4ED" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        <h2 class="text-base font-normal tracking-wide text-white">访客登录 / 注册</h2>
+      </div>
+      <label class="gate-label block mb-2">专属昵称</label>
+      <div class="group relative mb-7">
+        <input id="vName" class="gate-input" placeholder="你希望被怎样称呼" maxlength="16" onkeydown="if(event.key==='Enter')visitorLogin()">
+        <div class="gate-line-base"></div><div class="gate-line-active"></div>
+      </div>
+      <label class="gate-label block mb-2">登录密码</label>
+      <div class="group relative mb-9">
+        <input id="vPass" type="password" class="gate-input" placeholder="首次将自动注册" maxlength="24" onkeydown="if(event.key==='Enter')visitorLogin()">
+        <div class="gate-line-base"></div><div class="gate-line-active"></div>
+      </div>
+      <button class="gate-btn-primary" onclick="visitorLogin()">进入</button>
+      <p class="mt-4 text-center text-xs font-light text-white/35">首次访问将自动创建专属账号，昵称与密码仅本地保存</p>
+    </section>
+  </div>
+</div>
+
+<!-- ========== 主应用 ========== -->
+<div class="wrap" id="app" style="display:none;">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <div>
+      <h1 style="margin:0;"><span class="title-ic">🪞</span> 人格镜像馆</h1>
+      <p class="sub">Persona Mirror · 星云深处的自我倒影</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="roleBadge" class="rolebadge"></span>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">退出登录</button>
+    </div>
+  </div>
+
+  <div class="tabbar" id="tabbar"></div>
+
+  <!-- 人格探测 -->
+  <section class="panel active" id="panel-test">
+    <div class="glass" style="padding:24px;">
+      <h2><span class="title-ic">🎬</span> 人格探测 · 23题新版</h2>
+      <p class="sub" id="testIntro">先选择测试心情，再进入 23 道电影情境题（含元认知第23题）</p>
+      <div id="testStage"></div>
+    </div>
+  </section>
+
+  <!-- 分身训练（仅主人） -->
+  <section class="panel" id="panel-shadow">
+    <div class="glass" style="padding:24px;">
+      <h2><span class="title-ic">🧬</span> 分身训练 · 主人预设镜像</h2>
+      <p class="sub">配置你的数字分身，供访客在镜像对话中与之交谈</p>
+  <div class="grid2" style="margin-top:16px;">
+    <div class="frost">
+      <h3><span class="title-ic">🎭</span> 分身问答训练</h3>
+      <p class="sub">为分身设定多组「问题 → 回答」，丰富其人格语料</p>
+      <div id="qaList"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="addQA()">＋ 添加一组问答</button>
+      <button class="btn btn-sm" style="margin-top:8px;margin-left:8px;" onclick="startInterview()">🎙️ 开始引导访谈（系统提问·自动分析）</button>
+      <div id="interviewBox" style="display:none;margin-top:12px;"></div>
+    </div>
+    <div class="frost">
+      <h3><span class="title-ic">💗</span> 情绪光谱（星级 1-5）</h3>
+          <p class="sub">星级越高，镜像对话越优先使用该表达方式</p>
+          <div id="emotionStars"></div>
+        </div>
+      </div>
+      <div class="frost" style="margin-top:16px;">
+        <h3><span class="title-ic">🧬</span> 分身人格DNA（8维 0-100）</h3>
+        <div id="shadowDnaSliders"></div>
+      </div>
+      <button class="btn" style="margin-top:16px;" onclick="saveShadow()">💾 保存分身</button>
+    </div>
+  </section>
+
+  <!-- 镜像对话 -->
+  <section class="panel" id="panel-chat">
+    <div class="glass" style="padding:24px;">
+      <h2><span class="title-ic">💬</span> 镜像对话</h2>
+      <p class="sub" id="chatSub">与镜像分身自由对话，照见内心</p>
+      <div class="chatbox" id="chatBox"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <input id="chatInput" placeholder="说点什么…" onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="btn" onclick="sendChat()">发送</button>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="clearChat()">清空对话</button>
+    </div>
+  </section>
+
+  <!-- 人格匹配 -->
+  <section class="panel" id="panel-match">
+    <div class="glass" style="padding:24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <h2><span class="title-ic">⚖️</span> 人格匹配</h2>
+        <span class="deflink" onclick="showAllDefs()">📖 点击查看全部维度释义</span>
+      </div>
+      <p class="sub" style="margin-bottom:8px;">选择存档自动填充 8 维滑块，亦可手动拖拽；匹配记录存入档案馆</p>
+      <div class="grid2" style="margin-top:8px;">
+        <div class="frost">
+          <label class="sub">我的存档来源</label>
+          <select id="matchSelf" class="btn-ghost" style="margin:6px 0 10px;"></select>
+          <div id="selfSliders"></div>
+        </div>
+        <div class="frost">
+          <label class="sub">对方存档来源</label>
+          <select id="matchOther" class="btn-ghost" style="margin:6px 0 10px;"></select>
+          <div id="otherSliders"></div>
+        </div>
+      </div>
+      <button class="btn" style="margin-top:14px;" onclick="runMatch()">⚖️ 开始匹配</button>
+      <div id="matchResult" style="margin-top:16px;"></div>
+    </div>
+  </section>
+
+  <!-- 塔罗彩蛋 -->
+  <section class="panel" id="panel-tarot">
+    <div class="glass" style="padding:24px;text-align:center;">
+      <h2><span class="title-ic">🔮</span> 塔罗彩蛋 · 22张大阿卡纳</h2>
+      <p class="sub">静心默念一个问题，抽取属于你的命运之牌</p>
+      <div id="tarotStage" style="display:flex;justify-content:center;flex-wrap:wrap;margin:22px 0;min-height:270px;align-items:center;">
+        <div class="flip" id="tarotCard" onclick="revealTarot()">
+          <div class="flip-in">
+            <div class="flip-face" id="tarotFront" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#2d1b4e,#1a0b2e);font-size:3rem;">🔮</div>
+            <div class="flip-face flip-back" id="tarotBack"></div>
+          </div>
+        </div>
+      </div>
+      <button class="btn" id="drawBtn" onclick="drawTarot()">✨ 抽牌</button>
+      <div id="tarotMeaning" class="frost" style="margin-top:18px;text-align:left;display:none;"></div>
+    </div>
+  </section>
+
+  <!-- 档案馆 -->
+  <section class="panel" id="panel-archive">
+    <div class="glass" style="padding:24px;">
+      <h2><span class="title-ic">🗄️</span> 档案馆</h2>
+      <p class="sub">分层加载 · 单条删除 · 各板块独立清空</p>
+      <div class="arch-row" style="margin-top:14px;">
+        <button class="arch-btn active" onclick="showArch('dna',this)">🧬 人格DNA档案</button>
+        <button class="arch-btn" onclick="showArch('public',this)">🌐 公开访客档案</button>
+        <button class="arch-btn" onclick="showArch('tarot',this)">🔮 塔罗记录</button>
+        <button class="arch-btn" onclick="showArch('chat',this)">💬 对话记录</button>
+        <button class="arch-btn" onclick="showArch('match',this)">⚖️ 匹配记录</button>
+      </div>
+      <div id="archBody"></div>
+      <hr style="border-color:var(--glass-bd);margin:22px 0 14px;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="exportJSON()">⬇️ 导出全部数据(JSON)</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearAllData()" id="clearAllBtn">🗑️ 一键清空全站</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- 心情选择弹窗 -->
+<div class="modal" id="moodModal">
+  <div class="box glass" style="padding:26px;text-align:center;">
+    <h2><span class="title-ic">🌤️</span> 选择测试时心情</h2>
+    <p class="sub" style="margin-bottom:14px;">心情不计入 8 维计分，仅作为本次档案标记</p>
+    <div id="moodOpts" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<!-- 归档选择弹窗 -->
+<div class="modal" id="archiveModal">
+  <div class="box glass" style="padding:26px;">
+    <h2><span class="title-ic">📥</span> 测试完成！选择归档方式</h2>
+    <p class="sub" style="margin-bottom:8px;">心情：<span class="hl" id="archMood"></span> · 元认知已记录</p>
+    <div id="resultRadarWrap"></div>
+    <button class="opt" onclick="choosePrivate()">🔒 私密归档<small class="sub" style="display:block;margin-top:4px;">仅本人与网站主人可见，不对外展示</small></button>
+    <button class="opt" onclick="choosePublic()">🌐 公开归档<small class="sub" style="display:block;margin-top:4px;">全站访客+主人均可浏览，需填写验证信息</small></button>
+    <div id="publicForm" style="display:none;margin-top:14px;">
+      <div class="slider-row" style="display:block;"><label style="width:auto;display:block;margin-bottom:4px;">对外昵称</label><input id="pubName" placeholder="展示给他人的名字"></div>
+      <div class="slider-row" style="display:block;"><label style="width:auto;display:block;margin-bottom:4px;">联系方式（选填）</label><input id="pubContact" placeholder="微信 / 邮箱等"></div>
+      <div class="slider-row" style="display:block;"><label style="width:auto;display:block;margin-bottom:4px;">自定义验证问题</label><input id="pubQuestion" placeholder="例如：我们第一次见面的城市？"></div>
+      <div class="slider-row" style="display:block;"><label style="width:auto;display:block;margin-bottom:4px;">标准答案关键词（逗号分隔）</label><input id="pubKeywords" placeholder="例如：北京,三里屯"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn" id="confirmArchiveBtn" style="display:none;" onclick="confirmArchive()">✅ 确认归档</button>
+      <button class="btn btn-ghost" onclick="closeArchiveModal()">稍后再说</button>
+    </div>
+  </div>
+</div>
+
+<!-- 公开档案查看弹窗 -->
+<div class="modal" id="profileModal">
+  <div class="box glass" style="padding:26px;">
+    <div id="profileBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   人格镜像馆 — 单文件应用（v3）
+   身份：固定主人(密码duduiscmy) / 访客(昵称+密码账号)
+   ============================================================ */
+
+// ---------- 维度定义（新版8维）----------
+const DIMS=[
+  {key:'nrg',name:'能量源',tag:'内外向能源',def:'你从何处获取与消耗能量。高分者从人群互动中充电、乐于表达外放；低分者依赖独处、内在世界丰盈自足。'},
+  {key:'info',name:'信息偏好',tag:'意象/事实',def:'你偏爱处理哪类信息。高分者钟情意象、氛围、抽象与想象；低分者更重事实、结构、实用与确定。'},
+  {key:'dec',name:'决策风格',tag:'逻辑/感受',def:'你如何做决定。高分者依赖框架、逻辑与规划；低分者更凭感受、灵活与即兴，不被规则束缚。'},
+  {key:'rel',name:'关系模式',tag:'联结/边界',def:'你在关系中的姿态。高分者主动联结、照顾他人；低分者重视边界、保持距离、先安顿自己。'},
+  {key:'mean',name:'意义追寻',tag:'价值纵深',def:'你为何而行动。高分者不断追问价值与深度；低分者更安于当下体验，不必事事有意义。'},
+  {key:'risk',name:'风险态度',tag:'未知comfort',def:'你与未知的关系。高分者拥抱冒险与不确定；低分者偏好稳妥确定，安全感优先。'},
+  {key:'expr',name:'表达模式',tag:'外显/内敛',def:'你如何向外表达。高分者爱分享、外显；低分者内敛，以收藏与记录的方式表达。'},
+  {key:'rhythm',name:'生活节奏',tag:'秩序/流动',def:'你与时间的相处。高分者计划有序、节奏稳定；低分者随性流动、活在当下、船到桥头。'}
+];
+const DIM_KEYS=DIMS.map(d=>d.key);
+const DIM_MAP={};DIMS.forEach(d=>DIM_MAP[d.key]=d);
+const TOTEM={nrg:'焰',info:'翼',dec:'磐',rel:'润',mean:'渊',risk:'风',expr:'心',rhythm:'镜'};
+// TOP1+TOP2 组合 → 图腾名称（查表，未命中则独特平衡者）
+const TOTEM_TABLE=[
+  {a:'dec',b:'rel',name:'理性织网者'},
+  {a:'dec',b:'info',name:'逻辑建筑师'},
+  {a:'rel',b:'mean',name:'温暖追寻者'},
+  {a:'nrg',b:'risk',name:'社交探险家'},
+  {a:'expr',b:'info',name:'故事编织者'},
+  {a:'risk',b:'dec',name:'冒险策略家'},
+  {a:'rhythm',b:'dec',name:'秩序指挥官'},
+  {a:'mean',b:'info',name:'深度解谜人'},
+  {a:'dec',b:'risk',name:'审慎探索者'},
+  {a:'rel',b:'expr',name:'温暖联结者'},
+  {a:'info',b:'mean',name:'意义建构者'},
+  {a:'nrg',b:'rel',name:'社交织网者'}
+];
+const MOODS=['平静','兴奋','疲惫','焦虑','治愈'];
+const OWNER_ANS='duduiscmy';
+
+// ---------- 23题（1~22计分, 23元认知，严格使用文档文本）----------
+const QUESTIONS=[
+ {q:'周五下午，你窝在沙发里刷手机。窗外雨声渐密，朋友突然发来一张照片——街角一家亮着暖黄灯光的咖啡馆，玻璃上挂着水珠。配文："发现一家新店"。你盯着屏幕看了三秒，手指悬在键盘上方。你会：',
+  o:[{t:'立刻截图搜地址，发给三个朋友："明天下午去？我请客"',d:{nrg:5,info:5}},
+     {t:'长按保存图片，新建相册命名为"雨天灵感"，觉得这种氛围很适合写点什么',d:{nrg:-5,info:5}},
+     {t:'回复"一起去？"然后切回短视频，那张图淹没在信息流里',d:{nrg:5,info:-5}},
+     {t:'没回复，但脑子里开始编故事：这家咖啡馆的老板娘其实是个时间旅行者…',d:{nrg:-5,info:5}}]},
+ {q:'周末整理旧物，你从书架深处抽出一本中学笔记本。泛黄的纸页间，一片干枯的银杏叶滑落出来，叶脉清晰如掌纹。你愣了一下——那是毕业前某个秋天的下午。你会：',
+  o:[{t:'小心地把叶子夹回原来的页码，合上本子，继续整理',d:{dec:5,rhythm:5}},
+     {t:'对着光举起叶子，看了很久，想起那天的阳光、温度和谁坐在你旁边',d:{dec:-5,rhythm:-5}},
+     {t:'拍照发朋友圈，配文"考古现场：毕业前的我"，等点赞',d:{dec:-5,rhythm:5}},
+     {t:'把叶子夹进正在读的书里，当作书签，继续读',d:{dec:5,rhythm:5}}]},
+ {q:'凌晨一点，你独自在家。灯突然灭了，空调停止运转，世界陷入黑暗。手机屏幕亮起：电量20%。你坐在沙发上，四周安静得能听见冰箱停止后的余音。你会：',
+  o:[{t:'摸黑找到抽屉里的蜡烛，按优先级列出：先点蜡烛，再关冰箱省电，最后给手机充电',d:{nrg:-5,mean:5}},
+     {t:'坐在原地没动。黑暗中雨声变得清晰，你觉得这种安静挺舒服的',d:{nrg:-5,mean:-5}},
+     {t:'立刻打开微信，给三个朋友发："我家停电了！！！好吓人！！！"',d:{nrg:5,mean:-5}},
+     {t:'打开手机备忘录，借着屏幕微光写："黑暗是一种颜色，只是很少有人敢穿它"',d:{nrg:-5,mean:5}}]},
+ {q:'你推开火锅店的包厢门，里面十几个人在笑闹。你扫了一圈——全是生面孔，带你来的朋友暂时不在。空气里飘着麻辣味和啤酒气，有人抬头看了你一眼。你会：',
+  o:[{t:'目光锁定角落里同样在玩手机的人，走过去："你也被拉来的？"',d:{nrg:5,rel:5}},
+     {t:'找个靠窗的位置坐下，观察谁看起来好说话，等别人先开口',d:{nrg:-5,rel:-5}},
+     {t:'看到桌上杯子不够，主动问主人："需要帮忙摆碗筷吗？"',d:{nrg:5,rel:5}},
+     {t:'手机突然"响了"，你边往外走边对最近的人说："我接个电话"',d:{nrg:-5,rel:-5}}]},
+ {q:'深夜，你戴着耳机随机播放。一段钢琴前奏突然抓住你——旋律像水一样漫过胸口。你看了眼屏幕：一首从没听过的歌，歌手名字很陌生。你会：',
+  o:[{t:'立刻截图发给那个"一定会懂"的人："听到一段很适合你的旋律"',d:{expr:5,info:5}},
+     {t:'单曲循环，躺在床上盯着天花板，试图拆解这段旋律为什么让你鼻子发酸',d:{expr:-5,info:5}},
+     {t:'点收藏，心里想着"等心情对了再回来"，然后继续随机播放',d:{expr:-5,info:5}},
+     {t:'立刻搜索歌手主页，把专辑从头到尾听一遍，直到凌晨三点',d:{expr:5,info:5}}]},
+ {q:'如果要把今天的心情画成一幅画。你站在 imaginary 的画架前，调色板在手边。今天发生了一些事，你还没理清。你会：',
+  o:[{t:'抓起所有颜色，大笔挥洒，让颜料滴落在画布边缘，像情绪溢出来',d:{expr:5,info:5}},
+     {t:'只挤出一管靛蓝，大面积留白，觉得空白本身就是今天的心情',d:{expr:-5,info:5}},
+     {t:'画一杯半满的咖啡，放在窗台上，窗外是模糊的雨——具体的东西让人安心',d:{expr:-5,info:-5}},
+     {t:'画一组交错的线条，没有起点没有终点，颜色在碰撞中渐变',d:{expr:5,info:5}}]},
+ {q:'你做了一个很长的梦。梦里你在一个从没去过的城市，遇见了一个看不清脸的人，他说了一句很重要的话。闹钟响了，你睁开眼，天花板的白炽灯刺得眼睛疼。你会：',
+  o:[{t:'立刻打开手机搜索"梦见陌生人说话 心理学解释"，试图找到意义',d:{dec:5,mean:5}},
+     {t:'翻了个身，觉得梦就是大脑在整理垃圾文件，很快忘了具体内容',d:{dec:-5,mean:-5}},
+     {t:'闭着眼睛，把梦的情节在脑子里过一遍，然后打开手机备忘录记下来',d:{dec:5,mean:5}},
+     {t:'根据梦里的城市编一个故事，早餐时讲给室友听，添油加醋',d:{dec:-5,mean:5}}]},
+ {q:'排队买奶茶，前面的人突然回头，举着菜单问你："这杯好喝吗？"你注意到他其实还没决定要点什么。后面还有人排队，空气有点尴尬。你会：',
+  o:[{t:'认真介绍每一款的口感、甜度、隐藏喝法，最后推荐："这款加珍珠绝了"',d:{rel:5,dec:5}},
+     {t:'微笑说"还行"，然后低头看手机，希望对话到此结束',d:{rel:-5,dec:-5}},
+     {t:'反问："你喜欢甜还是苦的？我帮你挑"',d:{rel:-5,dec:5}},
+     {t:'举起自己手里的那杯："我在喝这个，因为上次失恋时第一次喝它，现在成了习惯"',d:{rel:5,dec:-5}}]},
+ {q:'朋友发来消息："周末去爬山？一个挺野的地方，我没去过。"你点开定位，地图显示一片绿色，没有具体路线，评论区只有三条，其中一条说"差点迷路"。你会：',
+  o:[{t:'立刻打开攻略App，查路线、海拔、装备清单，列Excel表',d:{risk:-5,rhythm:5}},
+     {t:'回复："都有谁去？"如果人对就不太担心',d:{risk:-5,rhythm:-5}},
+     {t:'秒回："好啊，到了再看"，周末早上直接出发',d:{risk:5,rhythm:-5}},
+     {t:'先查天气预报和地形难度，评估风险后，再决定要不要去',d:{risk:-5,rhythm:5}}]},
+ {q:'你最喜欢的书或电影，通常是因为某个瞬间。那个瞬间可能是一个画面、一句话、一种氛围。回忆那个瞬间，它最像：',
+  o:[{t:'主角站在雨中回头，你觉得那眼神和你某次照镜子时一模一样',d:{info:5,mean:5}},
+     {t:'结局的反转让你倒吸一口气，回去翻前面发现所有伏笔都埋好了',d:{info:5,mean:-5}},
+     {t:'某个长镜头：雨夜的车窗、黄昏的站台，你每次想起都觉得置身其中',d:{info:5,mean:-5}},
+     {t:'看完后你躺在床上想了很久，第二天醒来发现对某件事的看法变了',d:{info:-5,mean:5}}]},
+ {q:'打开手机相册，滑到最底部。如果删除所有照片只保留一类，你的相册里数量最多的可能是：',
+  o:[{t:'街角的猫、模糊的车窗、夕阳下的电线杆——随机抓取的瞬间',d:{nrg:-5,expr:5}},
+     {t:'聚餐的合照、自拍、朋友丑照——有人才有记忆',d:{nrg:5,expr:5}},
+     {t:'课程表截图、待办清单、地铁线路图——有用的信息',d:{nrg:-5,expr:-5}},
+     {t:'天空的云、地面的水洼、光影的折射——没有主体的抽象美',d:{nrg:-5,expr:5}}]},
+ {q:'朋友刚剪了头发，转圈问你："怎么样？"你看着镜子里的她——这个发型其实不太适合她的脸型。但她眼睛亮亮的，显然很期待。你会：',
+  o:[{t:'"我觉得另一侧分缝会更修饰脸型，你要不要试试？"',d:{dec:5,rel:-5}},
+     {t:'"挺特别的，你开心就好"，然后转移话题',d:{dec:-5,rel:5}},
+     {t:'"衣服搭配得好，这颜色很衬你"——避开发型本身',d:{dec:-5,rel:5}},
+     {t:'认真分析她的脸型、发质、日常打理时间，给出三个备选方案',d:{dec:5,rel:-5}}]},
+ {q:'你需要在一周内掌握一个全新的领域知识。桌上摊着书、平板、笔记本。窗外的光在变，你：',
+  o:[{t:'关上门，按自己的节奏看书、做笔记，拒绝任何打扰',d:{dec:5,rhythm:-5}},
+     {t:'拉个学习小组，互相提问、辩论、用费曼技巧讲解',d:{dec:-5,rhythm:5}},
+     {t:'直接找一个相关项目开始做，边做边查，在实践中理解',d:{dec:-5,rhythm:5}},
+     {t:'先画一张知识框架图，把概念分类，再逐个填充细节',d:{dec:5,rhythm:5}}]},
+ {q:'手机存储满了，必须删除一个App。你盯着屏幕上的图标：短视频、微信、备忘录、地图。你会先删：',
+  o:[{t:'短视频App——刷完就忘，最浪费时间',d:{risk:-5,rhythm:5}},
+     {t:'社交App——消息可以晚点回，不急',d:{risk:5,rhythm:-5}},
+     {t:'工作/学习App——数据在云端，删了也能恢复',d:{risk:5,rhythm:-5}},
+     {t:'地图/外卖——出门可以问路人，吃饭可以随便找',d:{risk:5,rhythm:-5}}]},
+ {q:'新环境，需要自我介绍。轮到你时，你站起来。你会：',
+  o:[{t:'"我是INTJ/双鱼座/东北人，典型的…"',d:{dec:5,mean:-5}},
+     {t:'"看情况吧，我有时候这样有时候那样"',d:{dec:-5,mean:5}},
+     {t:'"我喜欢下雨天窝在家看电影，讨厌香菜"',d:{dec:-5,mean:5}},
+     {t:'"我在努力成为一个更…的人，目前还在路上"',d:{dec:-5,mean:5}}]},
+ {q:'收到一个快递，拆开发现是朋友寄来的礼物——你随口提过想要的东西，自己都快忘了。包装很精致，附了一张手写卡片。你会：',
+  o:[{t:'立刻拍照搜同款，查价格，心里计算回礼的预算',d:{rel:-5,dec:5}},
+     {t:'愣了一下，想"她怎么知道我需要这个"，然后发消息问',d:{rel:5,dec:-5}},
+     {t:'小心拆开包装，把卡片夹进日记本，拍照记录这个瞬间',d:{rel:5,dec:-5}},
+     {t:'立刻打开购物App，开始挑回礼，觉得必须马上还这个人情',d:{rel:-5,dec:5}}]},
+ {q:'以下哪种情况最让你血压上升：',
+  o:[{t:'精心计划了一周的旅行，出发当天朋友突然说"要不改天吧"',d:{rhythm:5,rel:-5}},
+     {t:'你明明说的是A，对方理解成B，还反问"你不是这个意思吗？"',d:{rhythm:-5,rel:-5}},
+     {t:'家人未经你同意，擅自帮你报名了一个活动',d:{rhythm:5,rel:-5}},
+     {t:'聚餐时有人反复讲同一个老梗，第三次笑出声时',d:{rhythm:-5,rel:-5}}]},
+ {q:'描述你的房间/桌面。朋友第一次来，最可能看到的景象是：',
+  o:[{t:'每样东西有固定位置，连充电线都卷好，整洁得像样板间',d:{rhythm:5,risk:-5}},
+     {t:'看起来乱，但你知道每样东西在哪——"有序混乱"',d:{rhythm:-5,risk:-5}},
+     {t:'墙上贴满海报、照片、车票，桌面摆着小摆件和纪念品',d:{rhythm:-5,risk:5}},
+     {t:'经常换布局，最近把床移到窗边，因为想听雨声',d:{rhythm:-5,risk:5}}]},
+ {q:'发现一个完全匿名、没人知道你是谁的平台。没有关注数，没有点赞，没有身份。你会：',
+  o:[{t:'发一条平时不敢发的朋友圈："其实我一直在假装…"',d:{expr:5,risk:5}},
+     {t:'上传一段实验性的文字/音频，测试陌生人的反应',d:{expr:5,risk:5}},
+     {t:'注册后潜水，默默观察别人发什么，自己不发',d:{expr:-5,risk:-5}},
+     {t:'和平时一样，没什么区别——匿名不匿名，你都是同一个人',d:{expr:-5,risk:-5}}]},
+ {q:'以下哪种成就感最让你满足：',
+  o:[{t:'周末晚上，看着清单上所有待办被打勾，一种秩序完成的快感',d:{mean:-5,risk:-5}},
+     {t:'卡了三天的一个bug终于解决了，那一刻的顿悟',d:{mean:5,risk:-5}},
+     {t:'朋友发消息："谢谢你那天说的话，我想通了"',d:{mean:5,risk:-5}},
+     {t:'做了一件以前绝对不敢做的事，比如独自旅行、公开演讲',d:{mean:5,risk:5}}]},
+ {q:'你最常有的时间感受是：',
+  o:[{t:'"怎么又周末了？我还有好多事没做"——时间总是不够用',d:{rhythm:5,mean:-5}},
+     {t:'"现在这样就很好"——很少焦虑，活在当下',d:{rhythm:-5,mean:-5}},
+     {t:'"快点到下周吧"——总在期待未来的某件事',d:{rhythm:-5,mean:5}},
+     {t:'"时间不重要，事情做好就行"——沉浸时忘记时间',d:{rhythm:-5,mean:5}}]},
+ {q:'网站生成的人格分析里，有一句话你觉得不太对。你盯着那句话看了很久，然后：',
+  o:[{t:'返回去检查每一题的选项，试图找出是哪题选错了',d:{dec:5,mean:-5}},
+     {t:'笑了一下，觉得挺有意思，准不准无所谓',d:{dec:-5,mean:-5}},
+     {t:'截图发给朋友："这像不像我？快帮我判断"',d:{dec:-5,mean:5}},
+     {t:'把那句话记下来，接下来一周观察自己，看是不是真的',d:{dec:5,mean:5}}]},
+ {q:'做完这 22 题，你隐约感觉到这个测试在测什么。如果让你猜，你觉得它最想知道你哪方面的特质？',
+  meta:true,
+  o:[{t:'我是内向还是外向',d:{}},
+     {t:'我做事靠感觉还是靠逻辑',d:{}},
+     {t:'我面对陌生环境的习惯反应',d:{}},
+     {t:'我如何定义"有意义"',d:{}}]}
+];
+
+// E 选项开放输入计分（第三步：按句式结构正则叠加；未匹配各维+2）
+const E_RULES=[
+ {re:/如果|要是|假如|假设/,d:{dec:5,info:3}},
+ {re:/要么|或者|还是|可能.*可能/,d:{info:5,risk:3}},
+ {re:/先.*然后|先.*再|先.*等/,d:{rhythm:3,dec:3}},
+ {re:/随缘|看情况|视.*而定|灵活|不一定/,d:{risk:5,dec:-3}},
+ {re:/试图|努力|尽量|想|希望/,d:{mean:5}},
+ {re:/感觉|觉得|认为|想.*但/,d:{dec:-5}},
+ {re:/但是|不过|然而|可是/,d:{info:3}},
+ {re:/同时|一边.*一边|既.*又/,d:{rhythm:5,nrg:3}},
+ {re:/自己|独自|一个人|独处/,d:{nrg:-5}},
+ {re:/朋友|一起|约|邀请|聚会|社交/,d:{nrg:5,rel:5}},
+ {re:/查|搜|问|地址|研究|了解/,d:{dec:5,info:5}},
+ {re:/灵感|写|画|创作|故事|想象/,d:{info:5,mean:5}},
+ {re:/下次|以后|改天|等|拖延/,d:{rhythm:-5}},
+ {re:/立刻|马上|现在|赶紧/,d:{rhythm:5}},
+ {re:/分享|发|朋友圈|告诉/,d:{expr:5}},
+ {re:/收藏|保存|记录|备忘/,d:{expr:-5,dec:5}},
+ {re:/冒险|尝试|新|未知/,d:{risk:5}},
+ {re:/安全|稳妥|保险|确定/,d:{risk:-5}},
+ {re:/意义|为什么|价值|深度/,d:{mean:5}},
+ {re:/随便|都行|无所谓|看情况/,d:{dec:-5,rhythm:-5}}
+];
+
+// 22张大阿卡纳（SVG内置原图 + 深度释义）
+const TAROT=[
+ {n:'0',en:'The Fool',zh:'愚者',theme:['#f59e0b','#b45309'],m:'全新的开始与无限可能。象征天真、冒险与跳入未知的勇气。提醒你放下过度思虑，信任旅途本身，第一步往往比终点更重要。'},
+ {n:'I',en:'The Magician',zh:'魔术师',theme:['#a855f7','#6d28d9'],m:'意志与创造力的显化。你已具备实现目标的一切资源（风火水土皆在手中），专注、信念与行动能将念头化为现实。'},
+ {n:'II',en:'The High Priestess',zh:'女祭司',theme:['#38bdf8','#0369a1'],m:'直觉与潜意识的智慧。静默中藏着答案，聆听内在声音，不必急于言说。神秘与灵感在独处时降临。'},
+ {n:'III',en:'The Empress',zh:'皇后',theme:['#ec4899','#be185d'],m:'丰饶、滋养与生命之美。拥抱感性与创造力，让事物在爱与耐心之中自然生长，你本身就是丰盛的源泉。'},
+ {n:'IV',en:'The Emperor',zh:'皇帝',theme:['#f87171','#b91c1c'],m:'秩序、结构与掌控。以理性与纪律建立稳定江山，承担责任方能立业，刚毅之中自有担当。'},
+ {n:'V',en:'The Hierophant',zh:'教皇',theme:['#fbbf24','#a16207'],m:'传统、信念与指引。向经验与智慧学习，在规则与传承中找到归属，导师与体系是你向上的阶梯。'},
+ {n:'VI',en:'The Lovers',zh:'恋人',theme:['#fb7185','#9d174d'],m:'爱与价值的选择。深层联结源于真实的自我，重要的决定需听从本心，和谐来自内外的一致。'},
+ {n:'VII',en:'The Chariot',zh:'战车',theme:['#22d3ee','#0e7490'],m:'意志驱动的胜利。驾驭矛盾的两股力量，专注方向便能冲破阻碍，自律是通往成功的缰绳。'},
+ {n:'VIII',en:'Strength',zh:'力量',theme:['#facc15','#a16207'],m:'温柔的内在力量。以耐心与慈悲驯服心魔，真正的强大源于从容不迫，刚柔并济。'},
+ {n:'IX',en:'The Hermit',zh:'隐士',theme:['#94a3b8','#334155'],m:'独处与内省之光。暂时抽离喧嚣，提起明灯审视内心，于孤独中寻得真理与方向。'},
+ {n:'X',en:'Wheel of Fortune',zh:'命运之轮',theme:['#a78bfa','#6d28d9'],m:'流转的际遇与周期。顺应变化，好运与考验皆会轮转，保持弹性，在拐点处把握主动。'},
+ {n:'XI',en:'Justice',zh:'正义',theme:['#34d399','#047857'],m:'因果与平衡。真诚面对选择，公正终将显现，为自己与他人的每一笔都负责。'},
+ {n:'XII',en:'The Hanged Man',zh:'倒吊人',theme:['#60a5fa','#1d4ed8'],m:'暂停与视角的转换。放下执念，以不同的眼光看见被忽略的真相，牺牲表象换来求悟。'},
+ {n:'XIII',en:'Death',zh:'死神',theme:['#64748b','#1e293b'],m:'结束与重生。放下旧我方能蜕变，终结亦是新生的入口，允许事物自然谢幕。'},
+ {n:'XIV',en:'Temperance',zh:'节制',theme:['#2dd4bf','#0f766e'],m:'调和与中庸。在极端之间找到平衡，耐心炼就内在的宁静，万物相融而成。'},
+ {n:'XV',en:'The Devil',zh:'恶魔',theme:['#ef4444','#7f1d1d'],m:'束缚与欲望的枷锁。觉察令你受限的执念与依赖，看清方能打破，自由一直在你手中。'},
+ {n:'XVI',en:'The Tower',zh:'高塔',theme:['#f97316','#9a3412'],m:'突发的崩塌与觉醒。虚假结构倒塌，危机中藏着破而后立的契机，真实从废墟中升起。'},
+ {n:'XVII',en:'The Star',zh:'星星',theme:['#818cf8','#3730a3'],m:'希望与疗愈。风雨之后星光指引，信任宇宙的安排，重燃信心，温柔地重建。'},
+ {n:'XVIII',en:'The Moon',zh:'月亮',theme:['#c084fc','#6b21a8'],m:'幻象与潜意识的迷雾。面对不确定，以直觉穿越恐惧与迷惑，莫被假象牵走。'},
+ {n:'XIX',en:'The Sun',zh:'太阳',theme:['#fde047','#ca8a04'],m:'喜悦、成功与生命力。光明普照，坦然而绽放，享受当下的丰盛与纯真。'},
+ {n:'XX',en:'Judgement',zh:'审判',theme:['#a3e635','#3f6212'],m:'觉醒与召唤。回顾来路，原谅过往，回应内心更高的呼唤，重生在即。'},
+ {n:'XXI',en:'The World',zh:'世界',theme:['#f472b6','#831843'],m:'圆满与整合。一个循环的达成，带着全部经验，迈向更广阔的旅程，万物归一。'}
+];
+
+// 情绪光谱（分身训练）
+const EMOTIONS=[
+  {key:'happy',name:'开心',opts:['分享喜悦','奖励自己','与人联结','安静享受']},
+  {key:'sad',name:'难过',opts:['独处消化','找人倾诉','写下来','转移注意']},
+  {key:'angry',name:'生气',opts:['直接表达','冷静后再说','运动释放','暂时远离']},
+  {key:'nerve',name:'紧张',opts:['充分准备','深呼吸','寻求支持','正向暗示']}
+];
+// 引导式访谈问题库（系统提问）
+const SHADOW_QUESTIONS=[
+  '深夜独处时，你最常被什么念头占据？',
+  '当一个人真正理解你时，你觉得TA读懂了你的哪一面？',
+  '你最不愿在别人面前暴露的情绪是什么，为什么？',
+  '如果分身能替你做一件你一直不敢做的事，你希望是什么？',
+  '你通常用什么方式把自己从低谷里拉回来？',
+  '回忆一个你觉得自己「不像平时那样」的时刻，当时发生了什么？',
+  '你希望被人记住的样子，是怎样的？'
+];
+
+// ---------- 存储 ----------
+const LS={
+  identity:'pm_identity', vname:'pm_visitor_name',
+  accounts:'pm_accounts',
+  vpriv:'pm_vpriv', vpub:'pm_vpub',
+  master_s:'master_scenarios', master_e:'master_emotion', master_d:'master_dna',
+  mood:'pm_mood', meta:'pm_metacognition',
+  unlocked:'pm_unlocked'
+};
+function get(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}}
+function set(k,v){localStorage.setItem(k,JSON.stringify(v));}
+function fmt(ts){if(!ts)return '';const d=new Date(ts);if(isNaN(d)||d.getFullYear()<1970)return '';const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());}
+function chatKey(){return IS_OWNER?'owner':('v_'+VNAME);}
+function userTarot(){return get('pm_tarot_'+chatKey(),[]);}
+function setUserTarot(a){set('pm_tarot_'+chatKey(),a);}
+function userChats(){return get('pm_chats_'+chatKey(),[]);}
+function setUserChats(a){set('pm_chats_'+chatKey(),a);}
+function userMatch(){return get('pm_match_'+chatKey(),[]);}
+function setUserMatch(a){set('pm_match_'+chatKey(),a);}
+// 访客分区
+function getPriv(nick){return get(LS.vpriv,{})[nick]||[];}
+function setPriv(nick,arr){const o=get(LS.vpriv,{});o[nick]=arr;set(LS.vpriv,o);}
+function getAllPriv(){const o=get(LS.vpriv,{});let all=[];Object.keys(o).forEach(k=>all=all.concat(o[k].map(r=>({...r,owner:k}))));return all;}
+function getPub(nick){return get(LS.vpub,{})[nick]||[];}
+function setPub(nick,arr){const o=get(LS.vpub,{});o[nick]=arr;set(LS.vpub,o);}
+function getAllPub(){const o=get(LS.vpub,{});let all=[];Object.keys(o).forEach(k=>all=all.concat(o[k].map(r=>({...r,owner:k}))));return all;}
+
+// ---------- 状态 ----------
+let IS_OWNER=false, VNAME='';
+let answers=new Array(QUESTIONS.length).fill(null);
+let curQ=0, testStarted=false, curMood='', lastResult=null, lastMeta='';
+let unlocked=get(LS.unlocked,[]);
+
+// ---------- 身份网关 ----------
+function tryOwner(){
+  const v=(document.getElementById('ownerAns').value||'').trim();
+  if(v===OWNER_ANS){IS_OWNER=true;set(LS.identity,'owner');boot();}
+  else{toast('验证失败，请作为访客登录');}
+}
+function visitorLogin(){
+  const n=(document.getElementById('vName').value||'').trim();
+  const p=(document.getElementById('vPass').value||'');
+  if(!n){toast('请填写昵称');return;}
+  if(!p){toast('请设置/输入密码');return;}
+  const acc=get(LS.accounts,{});
+  if(acc[n]){
+    if(acc[n]!==p){toast('密码错误');return;}
+  }else{acc[n]=p;set(LS.accounts,acc);toast('注册成功，欢迎 '+n);}
+  IS_OWNER=false;VNAME=n;set(LS.identity,'visitor');set(LS.vname,n);boot();
+}
+function logout(){localStorage.removeItem(LS.identity);localStorage.removeItem(LS.vname);location.reload();}
+function boot(){
+  document.getElementById('gate').style.display='none';
+  document.getElementById('app').style.display='block';
+  const badge=document.getElementById('roleBadge');
+  if(IS_OWNER){badge.textContent='🌟 网站主人';badge.className='rolebadge tag-owner';}
+  else{badge.textContent='👤 '+VNAME;badge.className='rolebadge tag-visitor';}
+  buildTabs();initTest();initShadow();initChat();initMatch();initTarot();initStars();
+  document.getElementById('clearAllBtn').style.display=IS_OWNER?'inline-block':'none';
+}
+
+// ---------- 导航 ----------
+function buildTabs(){
+  const tabs=[
+    {id:'test',label:'🎬 人格探测'},
+    {id:'shadow',label:'🧬 分身训练',owner:true},
+    {id:'chat',label:'💬 镜像对话'},
+    {id:'match',label:'⚖️ 人格匹配'},
+    {id:'tarot',label:'🔮 塔罗彩蛋'},
+    {id:'archive',label:'🗄️ 档案馆'}
+  ];
+  const bar=document.getElementById('tabbar');bar.innerHTML='';
+  tabs.forEach(t=>{if(t.owner&&!IS_OWNER)return;
+    const el=document.createElement('div');el.className='tab'+(t.id==='test'?' active':'');
+    el.textContent=t.label;el.onclick=()=>switchTab(t.id);bar.appendChild(el);
+  });
+}
+const TABMAP={test:'panel-test',shadow:'panel-shadow',chat:'panel-chat',match:'panel-match',tarot:'panel-tarot',archive:'panel-archive'};
+const TABLAB={test:'🎬 人格探测',shadow:'🧬 分身训练',chat:'💬 镜像对话',match:'⚖️ 人格匹配',tarot:'🔮 塔罗彩蛋',archive:'🗄️ 档案馆'};
+function switchTab(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(TABMAP[id]).classList.add('active');
+  document.querySelectorAll('#tabbar .tab').forEach(t=>t.classList.toggle('active',t.textContent===TABLAB[id]));
+  if(id==='archive')showArch('dna',document.querySelector('.arch-btn'));
+  if(id==='match')refreshMatchSelects();
+}
+
+// ---------- 测试流程 ----------
+function initTest(){
+  answers=new Array(QUESTIONS.length).fill(null);curQ=0;testStarted=false;curMood='';
+  renderTestIntro();
+}
+function renderTestIntro(){
+  const s=document.getElementById('testStage');
+  s.innerHTML='<div class="frost" style="text-align:center;padding:30px;">'+
+    '<p class="sub" style="margin-bottom:16px;">本次测试含：前置心情选择 · 1~22题计分情境 · 第23题元认知</p>'+
+    '<button class="btn" style="font-size:1.05rem;" onclick="openMood()">🎬 开始探测</button></div>';
+}
+function openMood(){
+  const box=document.getElementById('moodOpts');box.innerHTML='';
+  MOODS.forEach(m=>{const b=document.createElement('button');b.className='opt';b.textContent='🌤️ '+m;
+    b.onclick=()=>{curMood=m;set(LS.mood,m);document.getElementById('moodModal').classList.remove('open');startTest();};
+    box.appendChild(b);});
+  document.getElementById('moodModal').classList.add('open');
+}
+function startTest(){testStarted=true;curQ=0;renderQ();}
+function renderQ(){
+  const q=QUESTIONS[curQ];const total=QUESTIONS.length;
+  let html='<div class="progress" style="margin:6px 0;"><span style="width:'+(curQ/total*100)+'%"></span></div>';
+  html+='<p class="sub" style="margin:4px 0 12px;">第 '+(curQ+1)+' / '+total+' 题'+(q.meta?' · 元认知':(answers[curQ]&&answers[curQ].type==='e'?' · 自定义作答':''))+'</p>';
+  html+='<h3 style="margin:0 0 12px;">'+q.q+'</h3>';
+  q.o.forEach((opt,i)=>{
+    const sel=answers[curQ]&&answers[curQ].type==='opt'&&answers[curQ].idx===i;
+    html+='<button class="opt'+(sel?' sel':'')+'" onclick="pickOpt('+i+')">'+String.fromCharCode(65+i)+'. '+opt.t+'</button>';
+  });
+  const eSel=answers[curQ]&&answers[curQ].type==='e';
+  html+='<button class="opt e-card'+(eSel?' sel':'')+'" onclick="toggleE()">E. ✍️ 自定义作答（点击展开输入框）</button>';
+  html+='<div id="eWrap" style="display:'+(eSel?'block':'none')+';margin-top:10px;">';
+  html+='<textarea id="eText" rows="3" placeholder="用你自己的方式描述此刻的选择与感受…">'+((eSel&&answers[curQ].text)||'')+'</textarea>';
+  html+='<button class="btn btn-sm" style="margin-top:8px;" onclick="pickE()">确认</button></div>';
+  html+='<div style="display:flex;justify-content:space-between;margin-top:18px;">';
+  html+='<button class="btn btn-ghost" id="prevBtn" onclick="prevQ()" '+(curQ===0?'style="visibility:hidden;"':'')+'>← 上一题</button>';
+  html+='<button class="btn" id="nextBtn" onclick="nextQ()">'+(curQ===total-1?'完成测试 ✓':'下一题 →')+'</button></div>';
+  document.getElementById('testStage').innerHTML=html;
+}
+function pickOpt(i){answers[curQ]={type:'opt',idx:i};renderQ();}
+function toggleE(){
+  const w=document.getElementById('eWrap');
+  if(w.style.display==='none'){w.style.display='block';answers[curQ]={type:'e',text:document.getElementById('eText').value};renderQ();}
+  else{w.style.display='none';}
+}
+function pickE(){
+  const t=(document.getElementById('eText').value||'').trim();
+  if(!t){toast('请先输入自定义内容');return;}
+  answers[curQ]={type:'e',text:t};renderQ();toast('已记录自定义作答');
+}
+function prevQ(){if(curQ>0){curQ--;renderQ();}}
+function nextQ(){
+  if(!answers[curQ]){toast('请先作答本题');return;}
+  if(curQ<QUESTIONS.length-1){curQ++;renderQ();}else finishTest();
+}
+function semanticE(text){
+  const d={};DIM_KEYS.forEach(k=>d[k]=0);let hit=false;
+  E_RULES.forEach(r=>{if(r.re.test(text)){hit=true;for(const k in r.d)d[k]+=r.d[k];}});
+  if(!hit)DIM_KEYS.forEach(k=>d[k]+=2);
+  return d;
+}
+function computeDims(){
+  const raw={};DIM_KEYS.forEach(k=>raw[k]=0);
+  answers.forEach((a,qi)=>{
+    if(!a||QUESTIONS[qi].meta)return;
+    if(a.type==='opt'){const dd=QUESTIONS[qi].o[a.idx].d;for(const k in dd)raw[k]+=dd[k];}
+    else if(a.type==='e'){const dd=semanticE(a.text);for(const k in dd)raw[k]+=dd[k];}
+  });
+  const out={};DIM_KEYS.forEach(k=>out[k]=Math.max(3,Math.min(100,Math.round(50+raw[k]*1.5))));
+  return out;
+}
+function totemName(d){
+  const sorted=DIM_KEYS.slice().sort((a,b)=>d[b]-d[a]);
+  const t1=sorted[0],t2=sorted[1];
+  const hit=TOTEM_TABLE.find(t=>(t.a===t1&&t.b===t2)||(t.a===t2&&t.b===t1));
+  return hit?hit.name:'独特平衡者';
+}
+function layeredInterpret(d,meta){
+  const sorted=DIM_KEYS.slice().sort((a,b)=>d[b]-d[a]);
+  const low=DIM_KEYS.slice().sort((a,b)=>d[a]-d[b])[0];
+  const t1=DIM_MAP[sorted[0]],t2=DIM_MAP[sorted[1]],tl=DIM_MAP[low];
+  const drive='【核心驱动力】你的能量主要来源于「'+t1.name+'」（'+t1.tag+'）：'+t1.def;
+  const second='【第二特质】「'+t2.name+'」（'+t2.tag+'）为你叠加了层次——'+t2.def;
+  const tension='【性格张力】当「'+t1.name+'」的向外动能，遇上「'+tl.name+'」的内在牵制，你常在主动与克制之间拉扯，这正是你复杂魅力的来源。';
+  const blind='【盲区提醒】「'+tl.name+'」是你相对薄弱的维度（'+d[low]+'分）。适度补强它，能让你在关系中更圆融、少些内耗。';
+  const meta_fb='【元认知觉察】你察觉到测试在探测你的【'+(meta||'属于自己的独特面向')+'】，这种元认知能力本身也是你人格的一部分。';
+  return drive+'\n\n'+second+'\n\n'+tension+'\n\n'+blind+'\n\n'+meta_fb;
+}
+function metaAspect(){
+  const a=answers[22];
+  if(!a)return {store:'',aspect:'属于自己的独特面向'};
+  if(a.type==='e')return {store:a.text||'',aspect:(a.text||'属于自己的独特面向')};
+  const map=['内外向的边界','认知方式（感觉 vs 逻辑）','面对陌生环境的习惯反应','如何定义“有意义”'];
+  return {store:'选项'+String.fromCharCode(65+a.idx)+'：'+QUESTIONS[22].o[a.idx].t, aspect:map[a.idx]||'属于自己的独特面向'};
+}
+function finishTest(){
+  const ma=metaAspect();
+  lastMeta=ma.store;set(LS.meta,ma.store);
+  const d=computeDims();
+  lastResult={dims:d,mood:curMood,meta:ma.store,interp:layeredInterpret(d,ma.aspect),totem:totemName(d),dna:dnaCode(d),time:Date.now()};
+  document.getElementById('testStage').innerHTML=
+    '<div class="frost"><h3>🌟 本次人格图腾：<span class="hl">'+lastResult.totem+'</span></h3>'+
+    '<canvas id="resultRadar2" style="max-height:280px;margin:10px 0;"></canvas>'+
+    '<div id="resBars"></div>'+
+    '<p class="sub" style="white-space:pre-wrap;line-height:1.7;margin-top:10px;">'+lastResult.interp+'</p>'+
+    '<div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">'+
+    '<button class="btn btn-sm" onclick="copyResult()">📋 复制全部结果</button>'+
+    '<button class="btn btn-ghost btn-sm" onclick="initTest()">🔄 重新探测</button>'+
+    '<button class="btn btn-sm" onclick="openArchiveModal()">📥 归档</button></div></div>';
+  renderRadar('resultRadar2',d);
+  renderResBars('resBars',d);
+}
+function renderResBars(id,d){
+  let h='';
+  DIMS.forEach(x=>{h+='<div class="slider-row"><label>'+x.name+'</label><div class="bar" style="flex:1;"><span style="width:'+d[x.key]+'%"></span></div><span class="num">'+d[x.key]+'</span><span class="deflink" onclick="showDimDef(\''+x.key+'\',event)">查看释义</span></div>';});
+  document.getElementById(id).innerHTML=h;
+}
+function dnaCode(d){
+  const order=DIM_KEYS.slice().sort((a,b)=>d[b]-d[a]);
+  const map={nrg:'N',info:'I',dec:'D',rel:'R',mean:'M',risk:'K',expr:'X',rhythm:'T'};
+  return order.map(k=>map[k]+d[k]).join('-');
+}
+
+// ---------- 归档 ----------
+function openArchiveModal(){
+  document.getElementById('archiveModal').classList.add('open');
+  document.getElementById('archMood').textContent=curMood||'（未选）';
+  document.getElementById('publicForm').style.display='none';
+  document.getElementById('confirmArchiveBtn').style.display='none';
+  window._archMode=null;
+  const wrap=document.getElementById('resultRadarWrap');
+  if(lastResult){
+    const prev=document.getElementById('resultRadar');if(prev)prev.parentNode.removeChild(prev);
+    const cv=document.createElement('canvas');cv.id='resultRadar';cv.style.maxHeight='240px';cv.style.margin='10px 0';
+    wrap.appendChild(cv);renderRadar('resultRadar',lastResult.dims);
+  }
+}
+function closeArchiveModal(){document.getElementById('archiveModal').classList.remove('open');toast('已存为本地草稿，可稍后在档案馆归档');}
+function choosePrivate(){window._archMode='private';document.getElementById('publicForm').style.display='none';document.getElementById('confirmArchiveBtn').style.display='block';}
+function choosePublic(){window._archMode='public';document.getElementById('publicForm').style.display='block';document.getElementById('confirmArchiveBtn').style.display='block';}
+function confirmArchive(){
+  if(!lastResult){closeArchiveModal();return;}
+  const rec={id:'v'+Date.now()+Math.floor(Math.random()*999),name:VNAME||'匿名',
+    mood:lastResult.mood,metacognition:lastResult.meta,dims:lastResult.dims,
+    interp:lastResult.interp,totem:lastResult.totem,dna:lastResult.dna,time:lastResult.time};
+  if(window._archMode==='private'){
+    rec.isPrivate=true;const arr=getPriv(VNAME);arr.push(rec);setPriv(VNAME,arr);
+    if(IS_OWNER){const all=getAllPriv();} toast('🔒 已私密归档');
+  }else if(window._archMode==='public'){
+    const pn=(document.getElementById('pubName').value||'').trim()||(VNAME||'匿名');
+    const q=(document.getElementById('pubQuestion').value||'').trim();
+    const ks=(document.getElementById('pubKeywords').value||'').trim();
+    if(!q||!ks){toast('公开归档需填写验证问题与关键词');return;}
+    rec.isPrivate=false;rec.pubName=pn;rec.contact=(document.getElementById('pubContact').value||'').trim();
+    rec.question=q;rec.keywords=ks.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
+    const arr=getPub(VNAME);arr.push(rec);setPub(VNAME,arr);
+    toast('🌐 已公开归档');
+  }else{toast('请选择归档方式');return;}
+  closeArchiveModal();
+}
+
+// ---------- 分身训练 ----------
+function initShadow(){
+  renderQA();
+  let html='';
+  EMOTIONS.forEach(e=>{
+    const st=(get(LS.master_e,{})[e.key]||{stars:3,reactions:[]});
+    html+='<div class="frost" style="margin-bottom:10px;"><p class="hl">'+e.name+' <span class="stars" data-k="'+e.key+'">';
+    for(let s=1;s<=5;s++)html+='<span class="star'+(s<=st.stars?' on':'')+'" onclick="rateEmo(\''+e.key+'\','+s+')">★</span>';
+    html+='</span></p><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">';
+    e.opts.forEach(op=>{html+='<span class="pill'+(st.reactions.indexOf(op)>=0?' hl':'')+'" style="cursor:pointer;" onclick="toggleReact(\''+e.key+'\',\''+op+'\')">'+op+'</span>';});
+    html+='</div></div>';
+  });
+  document.getElementById('emotionStars').innerHTML=html;
+  renderDnaSliders('shadowDnaSliders',get(LS.master_d,defaultDna()),'master_dna_val');
+}
+function defaultDna(){const o={};DIM_KEYS.forEach(k=>o[k]=55);return o;}
+function rateEmo(k,s){
+  const e=get(LS.master_e,{});if(!e[k])e[k]={stars:3,reactions:[]};e[k].stars=s;set(LS.master_e,e);
+  const wrap=document.querySelector('#emotionStars .stars[data-k="'+k+'"]');
+  wrap.querySelectorAll('.star').forEach((st,idx)=>st.classList.toggle('on',idx<s));
+}
+function toggleReact(k,op){
+  const e=get(LS.master_e,{});if(!e[k])e[k]={stars:3,reactions:[]};
+  const i=e[k].reactions.indexOf(op);if(i>=0)e[k].reactions.splice(i,1);else e[k].reactions.push(op);
+  set(LS.master_e,e);initShadow();
+}
+function renderDnaSliders(containerId,obj,storeKey){
+  let html='';
+  DIMS.forEach(d=>{html+='<div class="slider-row"><label>'+d.name+'</label><input type="range" min="0" max="100" value="'+obj[d.key]+'" data-k="'+d.key+'" oninput="dnaLive(\''+containerId+'\',\''+storeKey+'\',this)"><span>'+obj[d.key]+'</span></div>';});
+  document.getElementById(containerId).innerHTML=html;
+}
+function dnaLive(containerId,storeKey,el){el.nextElementSibling.textContent=el.value;
+  const obj={};DIMS.forEach(d=>{const inp=document.querySelector('#'+containerId+' [data-k="'+d.key+'"]');obj[d.key]=inp?+inp.value:55;});
+  window[storeKey]=obj;
+}
+function saveShadow(){
+  if(!IS_OWNER)return;
+  const qa=[];
+  document.querySelectorAll('#qaList .qa-row').forEach(r=>{
+    const q=(r.querySelector('.qa-q').value||'').trim();
+    const a=(r.querySelector('.qa-a').value||'').trim();
+    if(q||a)qa.push({q,a});
+  });
+  set(LS.master_s,qa);
+  set(LS.master_d,window.master_dna_val||get(LS.master_d,defaultDna()));
+  toast('💾 分身已保存');
+}
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function qaRow(q,a){
+  return '<div class="qa-row" style="display:flex;gap:8px;margin:8px 0;align-items:center;">'+
+    '<input class="qa-q btn-ghost" placeholder="问题，例如：你害怕什么？" value="'+esc(q)+'">'+
+    '<input class="qa-a btn-ghost" placeholder="分身的回答…" value="'+esc(a)+'">'+
+    '<button class="btn btn-ghost btn-xs" onclick="this.parentNode.remove()">✕</button></div>';
+}
+function renderQA(){
+  const qa=get(LS.master_s,[]);
+  const list=document.getElementById('qaList');
+  if(!qa.length){list.innerHTML=qaRow('','');return;}
+  list.innerHTML=qa.map(p=>qaRow(p.q,p.a)).join('');
+}
+function addQA(){document.getElementById('qaList').insertAdjacentHTML('beforeend',qaRow('',''));}
+
+// ---------- 引导式访谈（系统提问 → 回答 → 自动分析）----------
+let shadowIdx=0, shadowAnswers=[];
+function startInterview(){shadowIdx=0;shadowAnswers=[];document.getElementById('interviewBox').style.display='block';renderInterview();}
+function renderInterview(){
+  const box=document.getElementById('interviewBox');
+  if(shadowIdx>=SHADOW_QUESTIONS.length){finishInterview();return;}
+  const q=SHADOW_QUESTIONS[shadowIdx];
+  box.innerHTML='<div class="frost" style="border-color:var(--accent);"><p class="hl">访谈 '+(shadowIdx+1)+' / '+SHADOW_QUESTIONS.length+'</p>'+
+    '<p style="margin:8px 0;font-size:.95rem;">'+q+'</p>'+
+    '<textarea id="ivAns" rows="3" placeholder="你的回答…"></textarea>'+
+    '<div style="margin-top:8px;"><button class="btn btn-sm" onclick="ivNext()">'+(shadowIdx===SHADOW_QUESTIONS.length-1?'完成分析 ✓':'下一题 →')+'</button></div></div>';
+}
+function ivNext(){
+  const t=(document.getElementById('ivAns').value||'').trim();
+  if(!t){toast('请先回答本题');return;}
+  shadowAnswers.push({q:SHADOW_QUESTIONS[shadowIdx],a:t});
+  shadowIdx++;renderInterview();
+}
+function analyzeShadowQA(qa){
+  const total=qa.length;
+  const lens=qa.map(x=>(x.a||'').length);
+  const avg=Math.round(lens.reduce((a,b)=>a+b,0)/(total||1));
+  const style=avg>=40?'细腻绵长，习惯把感受拆开来讲':avg>=15?'简洁克制、点到即止':'极简留白，话不多但句句有重量';
+  const themes=['孤独','温柔','害怕','愤怒','自由','安静','思念','勇气','脆弱','期待','平静','迷茫','热爱','疲惫'];
+  const found={};
+  qa.forEach(x=>{themes.forEach(t=>{if((x.a||'').indexOf(t)>=0)found[t]=(found[t]||0)+1;});});
+  const top=Object.keys(found).sort((a,b)=>found[b]-found[a]).slice(0,3);
+  const themeTxt=top.length?('高频主题：'+top.join('、')):'主题较为分散，暂无突出情绪倾向';
+  return '🎙️ 访谈分析（共 '+total+' 组问答）\n· 表达风格：'+style+'（平均回答 '+avg+' 字）\n· '+themeTxt+'\n· 分身语料已更新，镜像对话将更贴近以上底色。';
+}
+function finishInterview(){
+  const exist=get(LS.master_s,[]);
+  set(LS.master_s,exist.concat(shadowAnswers));
+  const analysis=analyzeShadowQA(shadowAnswers);
+  const box=document.getElementById('interviewBox');
+  box.innerHTML='<div class="frost" style="border-color:var(--accent);"><p class="sub" style="white-space:pre-wrap;line-height:1.7;">'+analysis+'</p>'+
+    '<button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="document.getElementById(\'interviewBox\').style.display=\'none\'">收起</button></div>';
+  renderQA();toast('访谈完成，分身语料已更新');
+}
+
+// ---------- 镜像对话 ----------
+let chatProfile=null;
+function initChat(){
+  const md=get(LS.master_d,defaultDna());
+  const ms=get(LS.master_s,'');
+  const me=get(LS.master_e,{});
+  if(IS_OWNER){chatProfile={name:'我的分身',dims:md,scenarios:ms,emo:me};document.getElementById('chatSub').textContent='与你的主人分身自由对话，照见内心';}
+  else{chatProfile={name:'馆主分身',dims:md,scenarios:ms,emo:me};document.getElementById('chatSub').textContent='与馆主预设的镜像分身交谈（访客专属）';}
+  renderChat();
+}
+function renderChat(){const box=document.getElementById('chatBox');const logs=userChats();box.innerHTML='';
+  logs.forEach(m=>{const d=document.createElement('div');d.className='msg '+(m.me?'msg-me':'msg-you');d.textContent=m.text;box.appendChild(d);});box.scrollTop=box.scrollHeight;}
+function sendChat(){
+  const inp=document.getElementById('chatInput');const t=inp.value.trim();if(!t)return;
+  const logs=userChats();logs.push({me:true,text:t});setUserChats(logs);
+  const reply=mirrorReply(t,chatProfile);
+  setTimeout(()=>{const l=userChats();l.push({me:false,text:reply});setUserChats(l);renderChat();},450);
+  inp.value='';renderChat();
+}
+function mirrorReply(text,p){
+  const top=DIM_KEYS.slice().sort((a,b)=>p.dims[b]-p.dims[a])[0];
+  const nm=k=>DIM_MAP[k].name;
+  // 情绪光谱优先表达
+  let style='';
+  const emo=p.emo||{};let best=null,bestS=0;
+  EMOTIONS.forEach(e=>{const s=(emo[e.key]&&emo[e.key].stars)||0;if(s>bestS){bestS=s;best=e.name;}});
+  if(best&&bestS>=4)style='（带着'+best+'的底色）';
+  const replies=[
+    '我听见了'+style+'。作为你的镜像，我感受到你此刻的'+nm(top)+'特质在流动。',
+    '有意思'+style+'。如果我是你，我会顺着这份'+nm(top)+'继续探索下去。',
+    '你说的话让我想起：真正的理解，始于诚实面对自己。',
+    '我在你的话语里看到一面镜子——那里面也有我的影子。',
+    '不妨再深入一点？我想更靠近真实的你。'
+  ];
+  if(text.indexOf('?')>=0||text.indexOf('？')>=0)return '这个问题值得慢慢想'+style+'。从我的角度，答案或许藏在你的'+nm(top)+'之中。';
+  return replies[Math.floor(Math.random()*replies.length)];
+}
+function clearChat(){setUserChats([]);renderChat();toast('对话已清空');}
+
+// ---------- 人格匹配 ----------
+function refreshMatchSelects(){
+  const selfSel=document.getElementById('matchSelf');const otherSel=document.getElementById('matchOther');
+  let selfOpts='<option value="live">本次测试实时结果</option>';
+  if(IS_OWNER){
+    getAllPriv().forEach((r,i)=>selfOpts+='<option value="p'+i+'">私密·'+(r.name||'匿名')+'</option>');
+    getAllPub().forEach((r,i)=>selfOpts+='<option value="u'+i+'">公开·'+(r.pubName||r.name)+'</option>');
+  }else{
+    getPriv(VNAME).forEach((r,i)=>selfOpts+='<option value="p'+i+'">我的私密·'+fmt(r.time)+'</option>');
+    getPub(VNAME).forEach((r,i)=>selfOpts+='<option value="u'+i+'">我的公开·'+(r.pubName||'')+'</option>');
+  }
+  selfSel.innerHTML=selfOpts;
+  let otherOpts='<option value="master">馆主分身</option>';
+  getAllPub().forEach((r,i)=>otherOpts+='<option value="pub'+i+'">公开·'+(r.pubName||r.name)+'</option>');
+  otherSel.innerHTML=otherOpts;
+  refillMatchFromSelect();
+}
+function getSelfDims(val){
+  if(val==='live')return lastResult?lastResult.dims:defaultDna();
+  if(val[0]==='p')return getAllPriv()[+val.substring(1)].dims;
+  if(val[0]==='u')return getAllPub()[+val.substring(1)].dims;
+  return defaultDna();
+}
+function getOtherDims(val){
+  if(val==='master')return get(LS.master_d,defaultDna());
+  if(val[0]==='pub')return getAllPub()[+val.substring(1)].dims;
+  return defaultDna();
+}
+function refillMatchFromSelect(){
+  const sk=document.getElementById('matchSelf').value;const ok=document.getElementById('matchOther').value;
+  renderDnaSliders('selfSliders',getSelfDims(sk),'self_dna_val');
+  renderDnaSliders('otherSliders',getOtherDims(ok),'other_dna_val');
+}
+function initMatch(){document.getElementById('matchSelf').onchange=refillMatchFromSelect;document.getElementById('matchOther').onchange=refillMatchFromSelect;}
+function computeMatch(a,b){let diff=0;DIM_KEYS.forEach(k=>diff+=Math.abs(a[k]-b[k]));const score=Math.round(100-diff/8);
+  const comp=score>=80?'高度同频，灵魂共振':score>=60?'互补又契合，彼此成全':score>=40?'差异明显，需磨合':'反差强烈，吸引或拉扯';return {score,comp};}
+function otherIsLocked(val){
+  if(IS_OWNER)return false;if(val==='master')return false;
+  if(val[0]==='pub'){const r=getAllPub()[+val.substring(1)];return unlocked.indexOf(r.id)<0;}
+  return false;
+}
+function runMatch(){
+  const sd=window.self_dna_val||getSelfDims(document.getElementById('matchSelf').value);
+  const ok=document.getElementById('matchOther').value;
+  const od=window.other_dna_val||getOtherDims(ok);
+  const m=computeMatch(sd,od);const locked=otherIsLocked(ok);
+  let html='<div class="frost"><h3>⚖️ 匹配结果</h3><p style="font-size:1.4rem;" class="hl">契合度 '+m.score+'%</p><p class="sub">'+m.comp+'</p>';
+  html+='<h4 style="margin:12px 0 6px;">我方 8 维</h4>'+dnaBars(sd);
+  if(locked){html+='<div class="frost" style="margin-top:12px;border:1px dashed var(--accent);"><p>🔒 对方完整人格数据已隐藏</p><p class="sub">请在档案馆对应公开档案页回答验证问题解锁</p></div>';}
+  else{html+='<h4 style="margin:12px 0 6px;">对方 8 维</h4>'+dnaBars(od);}
+  html+='</div>';
+  document.getElementById('matchResult').innerHTML=html;
+  const arr=userMatch();arr.push({time:Date.now(),self:sd,other:od,score:m.score,comp:m.comp,locked:locked,otherLabel:labelOf(ok)});setUserMatch(arr);
+  toast(locked?'匹配完成（对方数据待解锁）':'匹配完成并已归档');
+}
+function labelOf(val){
+  if(val==='master')return '馆主分身';
+  if(val[0]==='pub')return '公开·'+(getAllPub()[+val.substring(1)].pubName||'');
+  if(val==='live')return '本次测试';
+  if(val[0]==='p')return '私密·'+fmt(getAllPriv()[+val.substring(1)].time);
+  if(val[0]==='u')return '公开·'+(getAllPub()[+val.substring(1)].pubName||'');
+  return val;
+}
+function dnaBars(d){let h='';DIMS.forEach(x=>{h+='<div class="slider-row"><label>'+x.name+' <span class="deflink" onclick="showDimDef(\''+x.key+'\',event)">释义</span></label><div class="bar" style="flex:1;"><span style="width:'+d[x.key]+'%"></span></div><span class="num">'+d[x.key]+'</span></div>';});return h;}
+
+// 维度释义弹窗
+let defCard=null;
+function showDimDef(key,ev){
+  if(ev)ev.stopPropagation();
+  document.removeEventListener('click',closeDimDefOnce);
+  closeDimDef();
+  const d=DIM_MAP[key];
+  const c=document.createElement('div');c.className='defcard';
+  c.innerHTML='<h3>'+d.name+' · '+d.tag+'</h3><p>'+d.def+'</p>';
+  c.onclick=e=>e.stopPropagation();
+  document.body.appendChild(c);defCard=c;
+  const x=ev?ev.clientX:200,y=ev?ev.clientY:200;
+  c.style.left=Math.min(x+10,innerWidth-310)+'px';c.style.top=Math.min(y+10,innerHeight-160)+'px';
+  setTimeout(()=>document.addEventListener('click',closeDimDefOnce),0);
+}
+function closeDimDefOnce(){closeDimDef();document.removeEventListener('click',closeDimDefOnce);}
+function closeDimDef(){if(defCard){defCard.remove();defCard=null;}}
+function showAllDefs(){
+  const box=document.getElementById('matchResult');
+  let h='<div class="frost"><h3>📖 全部维度释义</h3>';
+  DIMS.forEach(d=>{h+='<p style="margin:8px 0;"><span class="hl">'+d.name+'（'+d.tag+'）</span><br><span class="sub">'+d.def+'</span></p>';});
+  h+='</div>';box.innerHTML=h;switchTab('match');
+}
+
+// ---------- 塔罗 ----------
+let tarotDrawn=null;
+function tarotCardSVG(c){
+  const[c1,c2]=c.theme;
+  return '<svg viewBox="0 0 150 255" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">'+
+    '<defs><linearGradient id="g'+c.n+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+c1+'"/><stop offset="1" stop-color="'+c2+'"/></linearGradient></defs>'+
+    '<rect width="150" height="255" rx="12" fill="url(#g'+c.n+')"/>'+
+    '<rect x="8" y="8" width="134" height="239" rx="9" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.5"/>'+
+    '<text x="75" y="34" font-size="20" fill="#fff" text-anchor="middle" font-family="serif">'+c.n+'</text>'+
+    '<line x1="20" y1="44" x2="130" y2="44" stroke="rgba(255,255,255,.4)"/>'+
+    tarotMotif(c)+
+    '<text x="75" y="210" font-size="15" fill="#fff" text-anchor="middle" font-weight="bold">'+c.zh+'</text>'+
+    '<text x="75" y="228" font-size="9" fill="rgba(255,255,255,.8)" text-anchor="middle" font-family="serif">'+c.en+'</text></svg>';
+}
+function tarotMotif(c){
+  const cx=75,cy=125;
+  const M={
+    '0':'<circle cx="'+cx+'" cy="'+(cy-10)+'" r="20" fill="rgba(255,255,255,.85)"/><path d="M'+cx+' '+(cy+10)+' l-18 30 l36 0 z" fill="rgba(255,255,255,.7)"/>',
+    'I':'<rect x="'+(cx-4)+'" y="'+(cy-30)+'" width="8" height="60" fill="#fff"/><rect x="'+(cx-30)+'" y="'+(cy-4)+'" width="60" height="8" fill="#fff"/><text x="'+cx+'" y="'+(cy-34)+'" font-size="16" fill="#fff" text-anchor="middle">∞</text>',
+    'II':'<path d="M'+cx+' '+(cy-28)+' a22 22 0 1 0 0.1 0 z" fill="rgba(255,255,255,.85)"/><circle cx="'+cx+'" cy="'+cy+'" r="6" fill="'+c.theme[1]+'"/>',
+    'III':'<circle cx="'+cx+'" cy="'+cy+'" r="22" fill="rgba(255,255,255,.85)"/><circle cx="'+cx+'" cy="'+cy+'" r="22" fill="none" stroke="'+c.theme[1]+'" stroke-width="3"/>',
+    'IV':'<rect x="'+(cx-22)+'" y="'+(cy-22)+'" width="44" height="44" fill="rgba(255,255,255,.85)"/><text x="'+cx+'" y="'+(cy+8)+'" font-size="26" fill="'+c.theme[1]+'" text-anchor="middle" font-family="serif">♔</text>',
+    'V':'<path d="M'+cx+' '+(cy-26)+' l18 36 l-36 0 z" fill="rgba(255,255,255,.85)"/><circle cx="'+cx+'" cy="'+(cy-8)+'" r="5" fill="'+c.theme[1]+'"/>',
+    'VI':'<path d="M'+cx+' '+(cy-24)+' a10 10 0 1 0 0.1 0 z" fill="#fff"/><path d="M'+cx+' '+(cy+4)+' a10 10 0 1 0 0.1 0 z" fill="rgba(255,255,255,.6)"/>',
+    'VII':'<rect x="'+(cx-26)+'" y="'+(cy-6)+'" width="52" height="12" rx="4" fill="#fff"/><circle cx="'+(cx-26)+'" cy="'+cy+'" r="8" fill="rgba(255,255,255,.7)"/><circle cx="'+(cx+26)+'" cy="'+cy+'" r="8" fill="rgba(255,255,255,.7)"/>',
+    'VIII':'<path d="M'+cx+' '+(cy-26)+' q22 26 0 52 q-22 -26 0 -52 z" fill="rgba(255,255,255,.85)"/>',
+    'IX':'<circle cx="'+cx+'" cy="'+cy+'" r="20" fill="rgba(255,255,255,.85)"/><rect x="'+(cx-3)+'" y="'+(cy-40)+'" width="6" height="40" fill="#fff"/>',
+    'X':'<circle cx="'+cx+'" cy="'+cy+'" r="24" fill="none" stroke="#fff" stroke-width="3"/><text x="'+cx+'" y="'+(cy+8)+'" font-size="22" fill="#fff" text-anchor="middle">☸</text>',
+    'XI':'<path d="M'+cx+' '+(cy-26)+' v52 M'+(cx-16)+' '+(cy+4)+' h32" stroke="#fff" stroke-width="3"/><text x="'+cx+'" y="'+(cy-30)+'" font-size="14" fill="#fff" text-anchor="middle">⚖</text>',
+    'XII':'<circle cx="'+cx+'" cy="'+(cy-6)+'" r="14" fill="rgba(255,255,255,.85)"/><line x1="'+(cx-20)+'" y1="'+(cy+10)+'" x2="'+(cx+20)+'" y2="'+(cy+10)+'" stroke="#fff" stroke-width="3"/>',
+    'XIII':'<text x="'+cx+'" y="'+(cy+12)+'" font-size="46" fill="rgba(255,255,255,.9)" text-anchor="middle" font-family="serif">☠</text>',
+    'XIV':'<path d="M'+(cx-26)+' '+(cy+10)+' q26 -40 52 0" fill="none" stroke="#fff" stroke-width="3"/><circle cx="'+cx+'" cy="'+cy+'" r="6" fill="#fff"/>',
+    'XV':'<text x="'+cx+'" y="'+(cy+12)+'" font-size="42" fill="rgba(255,255,255,.9)" text-anchor="middle" font-family="serif">⚇</text>',
+    'XVI':'<rect x="'+(cx-18)+'" y="'+(cy-26)+'" width="36" height="52" fill="rgba(255,255,255,.85)"/><path d="M'+cx+' '+(cy-34)+' l-10 18 l20 0 z" fill="'+c.theme[1]+'"/>',
+    'XVII':'<path d="M'+cx+' '+(cy-22)+' l8 18 l-16 0 z" fill="#fff"/><circle cx="'+cx+'" cy="'+(cy-24)+'" r="5" fill="#fff"/>',
+    'XVIII':'<path d="M'+cx+' '+(cy-20)+' a18 18 0 1 0 0.1 0 z" fill="rgba(255,255,255,.85)"/><text x="'+cx+'" y="'+(cy+6)+'" font-size="13" fill="'+c.theme[1]+'" text-anchor="middle">☽</text>',
+    'XIX':'<circle cx="'+cx+'" cy="'+cy+'" r="18" fill="#fff"/><g stroke="#fff" stroke-width="2">'+[0,45,90,135].map(a=>'<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+Math.cos(a*Math.PI/180)*30)+'" y2="'+(cy+Math.sin(a*Math.PI/180)*30)+'"/>').join('')+'</g>',
+    'XX':'<text x="'+cx+'" y="'+(cy+12)+'" font-size="40" fill="rgba(255,255,255,.9)" text-anchor="middle" font-family="serif">☉</text>',
+    'XXI':'<text x="'+cx+'" y="'+(cy+12)+'" font-size="38" fill="rgba(255,255,255,.9)" text-anchor="middle" font-family="serif">⚘</text>'
+  };
+  return M[c.n]||M['0'];
+}
+function initTarot(){document.getElementById('tarotBack').innerHTML=tarotCardSVG(TAROT[0]);}
+function drawTarot(){
+  const card=document.getElementById('tarotCard');card.classList.remove('flipped');
+  document.getElementById('tarotMeaning').style.display='none';
+  const btn=document.getElementById('drawBtn');btn.disabled=true;btn.textContent='🔮 洗牌中…';
+  let frames=0;const total=18;
+  const iv=setInterval(()=>{frames++;const r=TAROT[Math.floor(Math.random()*TAROT.length)];
+    document.getElementById('tarotBack').innerHTML=tarotCardSVG(r);
+    if(frames>=total){clearInterval(iv);tarotDrawn=TAROT[Math.floor(Math.random()*TAROT.length)];
+      document.getElementById('tarotBack').innerHTML=tarotCardSVG(tarotDrawn);
+      btn.disabled=false;btn.textContent='✨ 再抽一次';toast('点击卡片翻看牌义');
+      const arr=userTarot();arr.push({id:tarotDrawn.n,time:Date.now()});setUserTarot(arr);}
+  },70);
+}
+function revealTarot(){
+  if(!tarotDrawn){toast('请先抽牌');return;}
+  document.getElementById('tarotCard').classList.add('flipped');
+  const c=tarotDrawn;
+  document.getElementById('tarotMeaning').style.display='block';
+  document.getElementById('tarotMeaning').innerHTML=
+    '<h3><span class="title-ic">🔮</span> '+c.n+' · '+c.zh+' ('+c.en+')</h3>'+
+    '<p style="line-height:1.7;">'+c.m+'</p>'+
+    '<p class="sub">抽牌时间：'+fmt(Date.now())+' · 已留存于档案馆塔罗分区</p>';
+}
+
+// ---------- 档案馆 ----------
+function showArch(kind,btn){
+  document.querySelectorAll('.arch-btn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');
+  const body=document.getElementById('archBody');
+  if(kind==='dna')renderDNA(body);
+  else if(kind==='public')renderPublic(body);
+  else if(kind==='tarot')renderTarotArch(body);
+  else if(kind==='chat')renderChatArch(body);
+  else if(kind==='match')renderMatchArch(body);
+}
+function sectionClear(kind){
+  if(kind==='dna'){
+    if(IS_OWNER){if(confirm('清空全站所有私密DNA档案？')){set(LS.vpriv,{});toast('已清空全部人格DNA档案');showArch('dna',document.querySelector('.arch-btn'));}}
+    else{if(confirm('清空你本人的全部私密DNA档案？')){setPriv(VNAME,[]);toast('已清空你的DNA档案');showArch('dna',document.querySelector('.arch-btn'));}}
+  }else if(kind==='public'){if(confirm('清空全站公开访客档案？')){set(LS.vpub,{});toast('已清空公开档案');showArch('public',document.querySelector('.arch-btn'));}}
+  else if(kind==='tarot'){if(confirm('清空你的全部塔罗抽牌记录？')){setUserTarot([]);toast('已清空塔罗记录');showArch('tarot',null);}}
+  else if(kind==='chat'){if(confirm('清空你的全部对话记录？')){setUserChats([]);toast('已清空对话');showArch('chat',null);}}
+  else if(kind==='match'){if(confirm('清空你的全部匹配记录？')){setUserMatch([]);toast('已清空匹配记录');showArch('match',null);}}
+}
+function dnaCard(r,full){
+  let h='<div class="card-rel"><span class="delbtn" onclick="delDNA(\''+r.id+'\',\''+(r.owner||r.name)+'\')">删除本条</span>';
+  h+='<p class="hl">'+(r.pubName||r.name||'匿名')+'</p>';
+  h+='<p class="sub">'+fmt(r.time)+' · 心情：'+(r.mood||'—')+'</p>';
+  if(r.metacognition)h+='<p class="sub">元认知：'+(r.metacognition.length>60?r.metacognition.slice(0,60)+'…':r.metacognition)+'</p>';
+  if(full){const cid='rad_'+Math.random().toString(36).slice(2);
+    h+='<canvas id="'+cid+'" style="max-height:220px;margin:8px 0;"></canvas>';
+    h+='<p style="font-size:.85rem;margin-top:6px;line-height:1.6;white-space:pre-wrap;">'+r.interp+'</p>';
+    h+='<p class="sub">图腾：'+r.totem+' · DNA：'+r.dna+'</p>';
+    setTimeout(()=>renderRadar(cid,r.dims),30);}
+  else{h+=dnaBars(r.dims);}
+  h+='</div>';return h;
+}
+function renderDNA(body){
+  let html='<div style="display:flex;justify-content:space-between;align-items:center;"><h3>🧬 人格DNA档案（私密）</h3><button class="btn btn-ghost btn-sm" onclick="sectionClear(\'dna\')">'+(IS_OWNER?'清空全部(全站)':'清空我的')+'</button></div>';
+  let list=IS_OWNER?getAllPriv():getPriv(VNAME);
+  list=list.slice().reverse();
+  if(!list.length)html+='<p class="sub" style="margin-top:10px;">暂无私密档案</p>';
+  html+='<div class="grid2" style="margin-top:12px;">';
+  list.forEach(r=>html+='<div class="frost">'+dnaCard(r,true)+'</div>');
+  html+='</div>';body.innerHTML=html;
+}
+function renderPublic(body){
+  let html='<div style="display:flex;justify-content:space-between;align-items:center;"><h3>🌐 公开访客档案</h3><button class="btn btn-ghost btn-sm" onclick="sectionClear(\'public\')">清空全部</button></div>';
+  const all=getAllPub().slice().reverse();
+  if(!all.length)html+='<p class="sub" style="margin-top:10px;">暂无公开档案</p>';
+  html+='<div class="grid2" style="margin-top:12px;">';
+  all.forEach(r=>{
+    const mine=r.owner===VNAME;
+    const unlockedNow=IS_OWNER||mine||unlocked.indexOf(r.id)>=0;
+    html+='<div class="frost card-rel">';
+    if(IS_OWNER||mine)html+='<span class="delbtn" onclick="delPub(\''+r.id+'\',\''+r.owner+'\')">删除本条</span>';
+    html+='<p class="hl">'+r.pubName+'</p><p class="sub">验证问题：'+r.question+'</p>';
+    if(unlockedNow){html+=dnaCard(r,true);}
+    else{
+      const myD=myLatestDims();
+      if(myD){const m=computeMatch(myD,r.dims);html+='<div class="frost" style="margin:8px 0;border:1px dashed var(--accent);"><p>你 VS '+r.pubName+' 粗略契合度：<span class="hl">'+m.score+'%</span></p><p class="sub">'+m.comp+'</p></div>';}
+      html+='<div class="frost" style="border:1px dashed var(--accent);"><p class="sub">验证问题：'+r.question+'</p><textarea id="ans_'+r.id+'" rows="2" placeholder="输入你的回答…"></textarea><button class="btn btn-sm" style="margin-top:6px;" onclick="tryUnlock(\''+r.id+'\')">提交验证</button></div>';
+      html+='<button class="btn btn-sm" style="margin-top:8px;" onclick="matchWithPub(\''+r.id+'\')">⚖️ 与TA匹配</button>';
+    }
+    html+='</div>';
+  });
+  html+='</div>';body.innerHTML=html;
+}
+function delDNA(id,owner){
+  if(!confirm('删除本条DNA档案？'))return;
+  if(IS_OWNER){const o=get(LS.vpriv,{});for(const k in o){o[k]=o[k].filter(r=>r.id!==id);}set(LS.vpriv,o);}
+  else{setPriv(VNAME,getPriv(VNAME).filter(r=>r.id!==id));}
+  toast('已删除');showArch('dna',document.querySelector('.arch-btn'));
+}
+function delPub(id,owner){
+  if(!confirm('删除本条公开档案？'))return;
+  const o=get(LS.vpub,{});for(const k in o){o[k]=o[k].filter(r=>r.id!==id);}set(LS.vpub,o);
+  toast('已删除');showArch('public',document.querySelector('.arch-btn'));
+}
+function myLatestDims(){
+  if(lastResult)return lastResult.dims;
+  let arr=getPriv(VNAME);if(IS_OWNER)arr=getAllPriv();
+  if(!arr.length)arr=getAllPub().filter(r=>IS_OWNER||r.owner===VNAME);
+  if(arr.length)return arr[arr.length-1].dims;return null;
+}
+function tryUnlock(id){
+  const all=getAllPub();const r=all.find(x=>x.id===id);if(!r)return;
+  const ans=(document.getElementById('ans_'+id).value||'').trim();if(!ans){toast('请输入回答');return;}
+  const hit=r.keywords.some(k=>ans.indexOf(k)>=0);
+  if(hit){if(unlocked.indexOf(id)<0){unlocked.push(id);set(LS.unlocked,unlocked);}toast('✅ 验证通过，已解锁');showArch('public',document.querySelectorAll('.arch-btn')[1]);}
+  else{toast('❌ 未匹配关键词，再想想？');}
+}
+function matchWithPub(id){
+  switchTab('match');
+  const idx=getAllPub().findIndex(x=>x.id===id);
+  document.getElementById('matchOther').value='pub'+idx;
+  refillMatchFromSelect();toast('已载入对方，点击「开始匹配」');
+}
+function renderTarotArch(body){
+  let html='<div style="display:flex;justify-content:space-between;align-items:center;"><h3>🔮 塔罗抽牌记录</h3><button class="btn btn-ghost btn-sm" onclick="sectionClear(\'tarot\')">清空全部</button></div>';
+  const arr=userTarot().slice().reverse();
+  if(!arr.length)html+='<p class="sub" style="margin-top:10px;">暂无抽牌记录</p>';
+  else{html+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">';
+    arr.forEach(r=>{const c=TAROT.find(x=>x.n===r.id)||TAROT[0];
+      html+='<div style="width:84px;text-align:center;"><div style="width:84px;height:143px;border-radius:9px;overflow:hidden;border:1px solid var(--glass-bd);">'+tarotCardSVG(c)+'</div><p class="sub" style="font-size:.68rem;margin:3px 0;">'+c.zh+'<br>'+fmt(r.time)+'</p></div>';});
+    html+='</div>';}
+  body.innerHTML=html;
+}
+function renderChatArch(body){
+  let html='<div style="display:flex;justify-content:space-between;align-items:center;"><h3>💬 对话记录</h3><button class="btn btn-ghost btn-sm" onclick="sectionClear(\'chat\')">清空全部</button></div>';
+  const logs=userChats();if(!logs.length)html+='<p class="sub" style="margin-top:10px;">暂无对话</p>';
+  logs.forEach(m=>{html+='<div class="msg '+(m.me?'msg-me':'msg-you')+'" style="margin:6px 0;">'+m.text+'</div>';});
+  body.innerHTML=html;
+}
+function renderMatchArch(body){
+  let html='<div style="display:flex;justify-content:space-between;align-items:center;"><h3>⚖️ 匹配记录</h3><button class="btn btn-ghost btn-sm" onclick="sectionClear(\'match\')">清空全部</button></div>';
+  const arr=userMatch().slice().reverse();
+  if(!arr.length)html+='<p class="sub" style="margin-top:10px;">暂无匹配记录</p>';
+  arr.forEach(r=>{html+='<div class="frost" style="margin-top:10px;"><p class="hl">契合度 '+r.score+'% · '+r.comp+'</p><p class="sub">对方：'+r.otherLabel+(r.locked?'（当时未解锁）':'')+' · '+fmt(r.time)+'</p></div>';});
+  body.innerHTML=html;
+}
+
+// ---------- 导出 / 清空 ----------
+function exportJSON(){
+  const data={identity:get(LS.identity),visitor:VNAME,accounts:get(LS.accounts,{}),
+    vpriv:get(LS.vpriv,{}),vpub:get(LS.vpub,{}),
+    master_s:get(LS.master_s,''),master_e:get(LS.master_e,{}),master_d:get(LS.master_d,defaultDna()),
+    mood:get(LS.mood,''),meta:get(LS.meta,''),unlocked:unlocked,
+    tarot:userTarot(),chats:userChats(),match:userMatch()};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='persona-mirror-data.json';a.click();
+  toast('已导出 JSON');
+}
+function clearAllData(){
+  if(!IS_OWNER){toast('仅主人可一键清空全站');return;}
+  if(!confirm('确认清空全站所有数据？此操作不可恢复'))return;
+  Object.keys(localStorage).forEach(k=>{if(k.indexOf('pm_')===0)localStorage.removeItem(k);});
+  unlocked=[];toast('全站数据已清空');location.reload();
+}
+function copyResult(){
+  if(!lastResult){toast('暂无结果');return;}
+  const txt='【人格图腾】'+lastResult.totem+'\n【心情】'+lastResult.mood+'\n【DNA】'+lastResult.dna+'\n\n'+lastResult.interp;
+  navigator.clipboard.writeText(txt).then(()=>toast('已复制全部结果'),()=>toast('复制失败，请手动选择'));
+}
+
+// ---------- 雷达图 ----------
+let _radarCharts={};
+function renderRadar(canvasId,dims){
+  const ctx=document.getElementById(canvasId);if(!ctx)return;
+  const data=DIM_KEYS.map(k=>dims[k]);
+  if(_radarCharts[canvasId]){_radarCharts[canvasId].data.datasets[0].data=data;_radarCharts[canvasId].update();return;}
+  if(window.Chart){
+    _radarCharts[canvasId]=new Chart(ctx,{type:'radar',data:{labels:DIMS.map(d=>d.name),datasets:[{label:'人格8维',data:data,backgroundColor:'rgba(168,85,247,.25)',borderColor:'#a855f7',pointBackgroundColor:'#d8b4fe',borderWidth:2}]},options:{plugins:{legend:{display:false}},scales:{r:{min:0,max:100,ticks:{display:false,stepSize:25},grid:{color:'rgba(168,85,247,.25)'},angleLines:{color:'rgba(168,85,247,.25)'},pointLabels:{color:'#e9e3ff',font:{size:11}}}}}});
+  }
+}
+
+// ---------- 星空白星云背景 ----------
+function initStars(){
+  const c=document.getElementById('stars');const ctx=c.getContext('2d');let w,h,stars;
+  function resize(){w=c.width=innerWidth;h=c.height=innerHeight;stars=Array.from({length:160},()=>({x:Math.random()*w,y:Math.random()*h,r:Math.random()*1.6+.3,a:Math.random(),s:Math.random()*.02+.004}));}
+  resize();addEventListener('resize',resize);
+  function draw(){
+    const g=ctx.createRadialGradient(w/2,h*0.3,0,w/2,h*0.3,Math.max(w,h));
+    g.addColorStop(0,'#2d1b4e');g.addColorStop(.5,'#1a0b2e');g.addColorStop(1,'#0f0524');
+    ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+    stars.forEach(s=>{s.a+=s.s;const al=0.4+Math.abs(Math.sin(s.a))*0.6;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,7);ctx.fillStyle='rgba(216,180,254,'+al+')';ctx.fill();s.y-=0.15;if(s.y<0)s.y=h;});
+    requestAnimationFrame(draw);
+  }draw();
+}
+
+// ---------- 提示 ----------
+let toastTimer=null;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
+
+// ---------- 启动 ----------
+(function(){
+  const id=get(LS.identity);
+  if(id==='owner'){IS_OWNER=true;VNAME=get(LS.vname,'');boot();}
+  else if(id==='visitor'){IS_OWNER=false;VNAME=get(LS.vname,'');boot();}
+  else{document.getElementById('gate').style.display='flex';}
+})();
+</script>
+</body>
+</html>
