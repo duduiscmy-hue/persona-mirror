@@ -1176,7 +1176,7 @@ function runMatch(){
   const ok=document.getElementById('matchOther').value;
   const od=window.other_dna_val||getOtherDims(ok);
   const m=computeMatch(sd,od);const locked=otherIsLocked(ok);
-  let html='<div class="frost"><h3>⚖️ 匹配结果</h3>';
+  let html='<div class="frost"><h3>⚖️ 匹配结果</h3><p class="sub" style="margin:2px 0 12px;">先看你们各自的 8 维人格轮廓，再往下看两人的关系解析</p>';
   html+='<h4 style="margin:12px 0 6px;">我方 8 维</h4>'+dnaBarsSimple(sd);
   if(locked){html+='<div class="frost" style="margin-top:12px;border:1px dashed var(--accent);"><p>🔒 对方完整人格数据已隐藏</p><p class="sub">请在档案馆对应公开档案页回答验证问题解锁</p></div>';}
   else{html+='<h4 style="margin:12px 0 6px;">对方 8 维</h4>'+dnaBarsSimple(od);}
@@ -1428,7 +1428,10 @@ function renderMatchArch(body){
   let html='<div style="display:flex;justify-content:space-between;align-items:center;"><h3>⚖️ 匹配记录</h3><button class="btn btn-ghost btn-sm" onclick="sectionClear(\'match\')">清空全部</button></div>';
   const arr=userMatch().slice().reverse();
   if(!arr.length)html+='<p class="sub" style="margin-top:10px;">暂无匹配记录</p>';
-  arr.forEach(r=>{html+='<div class="frost" style="margin-top:10px;"><p class="hl">契合度 '+r.score+'% · '+r.comp+'</p><p class="sub">对方：'+r.otherLabel+(r.locked?'（当时未解锁）':'')+' · '+fmt(r.time)+'</p></div>';});
+  arr.forEach(r=>{
+    const rel=relType(getComboFromProfile({dims:r.self||{}}),getComboFromProfile({dims:r.other||{}}),r.score);
+    html+='<div class="frost" style="margin-top:10px;"><p class="hl">契合度 '+r.score+'% · <span style="color:'+rel.color+';">'+rel.label+'</span></p><p class="sub">对方：'+r.otherLabel+(r.locked?'（当时未解锁）':'')+' · '+fmt(r.time)+'</p></div>';
+  });
   body.innerHTML=html;
 }
 
@@ -1559,37 +1562,77 @@ function getComboFromProfile(profile) {
   return top2;
 }
 
+function relType(c1, c2, percent){
+  const d1=c1.split('+'), d2=c2.split('+');
+  const shared=d1.filter(d=>d2.includes(d));
+  if(c1===c2) return {icon:'🌟', label:'同频共振型', color:'#ffd166', desc:'你们几乎是同一种内核的两种表达，灵魂同频，很多事不言而喻。'};
+  if(shared.length>=1){
+    const trait={nrg:'焰',info:'翼',dec:'磐',rel:'润',mean:'渊',risk:'风',expr:'心',rhythm:'镜'}[shared[0]];
+    return {icon:'🤝', label:'默契搭档型', color:'#4ecdc4', desc:'你们在「'+trait+'」维度上共享同一种语言，是天然的搭档与互补。'};
+  }
+  if(percent>=80) return {icon:'💞', label:'灵魂共振型', color:'#ff8fab', desc:'差异没有成为隔阂，反而让彼此着迷，是罕见的强吸引组合。'};
+  if(percent>=65) return {icon:'🌱', label:'互补成长型', color:'#9be15d', desc:'你们是互补型组合，学会欣赏对方身上你没有的部分，彼此成全。'};
+  if(percent>=50) return {icon:'🪐', label:'异质吸引型', color:'#a78bfa', desc:'来自不同的世界，却产生了化学反应，差异成了彼此的异域风情。'};
+  if(percent>=40) return {icon:'🌊', label:'张力磨合型', color:'#60a5fa', desc:'差异是你们的主题，先学会陪伴，在张力中找到共处的节奏。'};
+  return {icon:'⚡', label:'极端碰撞型', color:'#fb923c', desc:'强烈的碰撞，需要彼此成为翻译者，或共同找到一个翻译者。'};
+}
+
 function generateMatchHTML(profileA, profileB, matchPercent) {
-  const combo1 = getComboFromProfile(profileA);
-  const combo2 = getComboFromProfile(profileB);
-  const name1 = COMBO_NAMES[combo1] || '未知旅者';
-  const name2 = COMBO_NAMES[combo2] || '未知旅者';
-  const key1 = `${combo1}|${combo2}`;
-  const key2 = `${combo2}|${combo1}`;
-  let analysis = MATCH_STORIES[key1] || MATCH_STORIES[key2];
-  if (!analysis) analysis = generateDynamicAnalysis(combo1, combo2, matchPercent);
-  
+  const sd=profileA.dims||{}, od=profileB.dims||{};
+  const combo1=getComboFromProfile(profileA);
+  const combo2=getComboFromProfile(profileB);
+  const name1=COMBO_NAMES[combo1]||'未知旅者';
+  const name2=COMBO_NAMES[combo2]||'未知旅者';
+  const key1=`${combo1}|${combo2}`, key2=`${combo2}|${combo1}`;
+  let analysis=MATCH_STORIES[key1]||MATCH_STORIES[key2];
+  if(!analysis)analysis=generateDynamicAnalysis(combo1,combo2,matchPercent);
+  const rel=relType(combo1,combo2,matchPercent);
+  let maxDiff=-1,maxDim='',minDiff=999,minDim='';
+  DIM_KEYS.forEach(k=>{const diff=Math.abs((sd[k]||0)-(od[k]||0));if(diff>maxDiff){maxDiff=diff;maxDim=k;}if(diff<minDiff){minDiff=diff;minDim=k;}});
+  const nm=k=>DIM_MAP[k].name;
   return `
     <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:24px;margin-top:20px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
         <div style="text-align:center;flex:1;">
-          <div style="font-size:14px;color:#aaa;">${name1}</div>
+          <div style="font-size:15px;font-weight:600;color:#fff;">${name1}</div>
+          <div style="font-size:11px;color:#888;margin-top:2px;">你方</div>
         </div>
-        <div style="text-align:center;padding:0 20px;">
-          <div style="font-size:32px;font-weight:bold;color:#ff6b6b;">${matchPercent}%</div>
-          <div style="font-size:12px;color:#888;">契合度</div>
+        <div style="text-align:center;padding:0 16px;">
+          <div style="font-size:34px;font-weight:bold;color:#ff6b6b;line-height:1;">${matchPercent}%</div>
+          <div style="font-size:11px;color:#888;margin-top:4px;">契合度</div>
         </div>
         <div style="text-align:center;flex:1;">
-          <div style="font-size:14px;color:#aaa;">${name2}</div>
+          <div style="font-size:15px;font-weight:600;color:#fff;">${name2}</div>
+          <div style="font-size:11px;color:#888;margin-top:2px;">对方</div>
         </div>
       </div>
-      <div style="background:rgba(0,0,0,0.2);border-radius:12px;padding:16px;margin-bottom:16px;">
-        <div style="font-size:16px;font-weight:bold;color:#ffd700;margin-bottom:8px;">🔮 相遇解析</div>
-        <div style="font-size:14px;color:#ddd;line-height:1.6;">${analysis}</div>
+
+      <div style="display:flex;align-items:center;gap:10px;background:${rel.color}1a;border:1px solid ${rel.color}66;border-radius:12px;padding:12px 14px;margin-bottom:14px;">
+        <div style="font-size:22px;line-height:1;">${rel.icon}</div>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:${rel.color};">${rel.label}</div>
+          <div style="font-size:12.5px;color:#ccc;line-height:1.5;margin-top:2px;">${rel.desc}</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-bottom:14px;">
+        <div style="flex:1;background:rgba(0,0,0,0.2);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:11px;color:#888;">最契合维度</div>
+          <div style="font-size:13px;color:#9be15d;margin-top:2px;">${nm(minDim)}</div>
+        </div>
+        <div style="flex:1;background:rgba(0,0,0,0.2);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:11px;color:#888;">差异最大维度</div>
+          <div style="font-size:13px;color:#fb923c;margin-top:2px;">${nm(maxDim)}</div>
+        </div>
+      </div>
+
+      <div style="background:rgba(0,0,0,0.2);border-radius:12px;padding:16px;margin-bottom:12px;">
+        <div style="font-size:15px;font-weight:bold;color:#ffd700;margin-bottom:8px;">🔮 相遇解析</div>
+        <div style="font-size:14px;color:#ddd;line-height:1.7;">${analysis}</div>
       </div>
       <div style="background:rgba(0,0,0,0.2);border-radius:12px;padding:16px;">
-        <div style="font-size:16px;font-weight:bold;color:#4ecdc4;margin-bottom:8px;">💡 相处建议</div>
-        <div style="font-size:14px;color:#ddd;line-height:1.6;">${generateAdvice(matchPercent)}</div>
+        <div style="font-size:15px;font-weight:bold;color:#4ecdc4;margin-bottom:8px;">💡 相处建议</div>
+        <div style="font-size:14px;color:#ddd;line-height:1.7;">${generateAdvice(matchPercent)}</div>
       </div>
     </div>
   `;
