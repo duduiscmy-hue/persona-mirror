@@ -1455,9 +1455,9 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
   else if(id==='visitor'){IS_OWNER=false;VNAME=get(LS.vname,'');boot();}
   else{document.getElementById('gate').style.display='flex';}
 })();
+
 // ================== 性格匹配解析系统 ==================
 
-// 12种TOP2组合名称
 const COMBO_NAMES = {
   'dec+rel': '理性织网者',
   'dec+info': '逻辑建筑师',
@@ -1473,51 +1473,37 @@ const COMBO_NAMES = {
   'nrg+rel': '社交织网者'
 };
 
-// 两人相遇解析库
 const MATCH_STORIES = {
-  // 相同组合相遇
   'dec+rel|dec+rel': '双网交织：两个理性织网者的相遇，像是两座精密城市的轨道对接。你们用逻辑编织关系，用关系验证逻辑，彼此是最懂对方「为什么」的人。但两张网叠在一起，也可能让彼此透不过气。',
   'dec+info|dec+info': '双塔共鸣：两座逻辑建筑并肩而立。你们不需要解释就能读懂对方的蓝图，协作时效率惊人。但两个建筑师都擅长「建造」，却可能忘了给情感留一扇窗。',
   'rel+mean|rel+mean': '双渊取暖：两个在意义深渊中寻找火光的人相遇，彼此是对方黑暗中的灯塔。你们共享同一种敏感，但也可能一起沉溺于情绪的深海。',
   'nrg+risk|nrg+risk': '双焰燎原：两团火焰的碰撞，要么照亮整片夜空，要么一起燃尽。你们互为对方的冒险催化剂，生活永远不会无聊，但学会「暂停」是你们的共同课题。',
-
-  // 经典互补
   'dec+rel|nrg+risk': '理性与火焰：一个织网，一个点火。你为他规划路线，他带你冲破边界。你是他的刹车，他是你的油门。这种组合需要学会——计划与冲动不必互相否定。',
   'dec+info|rel+expr': '蓝图与故事：一个用数据建造世界，一个用感受连接人心。你是他缺失的「温度」，他是你缺少的「骨架」。你们的对话，常常是「事实」与「感觉」的翻译练习。',
   'rel+mean|dec+info': '心灵与机器：一个追问「为什么」，一个回答「怎么做」。你给他的世界注入意义，他让你的理想落地生根。你们是感性与理性的最佳拍档。',
   'nrg+risk|rhythm+dec': '风暴与秩序：一个要打破规则，一个要建立规则。你们是天生的张力组合——他让你的人生有方向，你让他的人生有意外。磨合好了是「有秩序的冒险」，磨合不好是「内战」。',
-
-  // 相邻气质
   'dec+rel|rel+expr': '织网者与联结者：你们都关心「人」，但一个用理性筛选，一个用直觉拥抱。你教会他边界，他教会你敞开。你们的关系像一座有门禁的花园——门内温暖，门外有墙。',
   'dec+info|risk+dec': '建筑师与探险家：一个画地图，一个撕地图。你帮他避开陷阱，他帮你发现新大陆。你们是「计划」与「变化」的永恒博弈，也是最佳成长组合。',
   'expr+info|info+mean': '故事与谜题：一个用叙事包裹世界，一个用逻辑拆解世界。你们是彼此的读者——他读你故事里的隐喻，你读他沉默中的代码。',
-
-  // 动静碰撞
   'rhythm+dec|nrg+risk': '指挥官与探险家：一个要控制节奏，一个要打破节奏。你是他的「锚」，他是你的「帆」。没有他，你的生活是一潭死水；没有你，他的人生是脱轨列车。',
   'mean+info|rel+mean': '解谜者与追寻者：都在意义的深海潜水，但一个带着显微镜，一个带着心电仪。你们共享同一片海域，却用不同的仪器探测彼此。',
-
-  // 信息派相遇
   'dec+info|expr+info': '数据与叙事：一个相信数字，一个相信故事。你们争夺同一种原材料——「信息」，但一个要分析，一个要讲述。学会互相翻译，你们就是无敌的信息处理中心。',
-  'info+mean|dec+info': '意义与逻辑：都在建构，但一个建构意义，一个建构系统。你是他的「为什么」，他是你的「怎么做」。',
+  'info+mean|dec+info': '意义与逻辑：都在建构，但一个建构意义，一个建构系统。你是他的「为什么」，他是你的「怎么做」。'
 };
 
-// 动态生成解析（表里没有的组合用这个）
 function generateDynamicAnalysis(c1, c2, percent) {
   const dims1 = c1.split('+');
   const dims2 = c2.split('+');
   const shared = dims1.filter(d => dims2.includes(d));
-
   if (shared.length >= 1) {
     const trait = {nrg:'焰',info:'翼',dec:'磐',rel:'润',mean:'渊',risk:'风',expr:'心',rhythm:'镜'}[shared[0]];
     return `「${trait}」之共鸣：你们在「${trait}」的维度上共享同一种语言。这是你们默契的基石，但也可能因为太像而看不见彼此的盲区。`;
   }
-
   if (percent > 75) return '异质吸引：你们来自不同的世界，却产生了强烈的化学反应。差异没有成为隔阂，反而成了彼此最着迷的「异域风情」。';
   if (percent > 50) return '平行线交汇：你们有各自运行的轨道，但在某些时刻产生了美丽的交点。这些交点值得珍惜，但不必强求完全重合。';
   return '星尘相遇：两颗来自不同星系的尘埃偶然交汇。你们可能无法理解彼此的全部，但正是这种「不可理解」构成了最独特的风景。';
 }
 
-// 生成建议
 function generateAdvice(percent) {
   if (percent >= 85) return '你们是高度共振的组合，保持各自的独立性，同时珍惜这份罕见的同频。';
   if (percent >= 70) return '你们有天然的默契，但别让相似成为懒惰的借口——差异处才是成长的空间。';
@@ -1526,7 +1512,6 @@ function generateAdvice(percent) {
   return '你们是极端的碰撞。这不是坏事，但需要一个「翻译者」——或者，你们自己成为彼此的翻译。';
 }
 
-// 从档案对象提取TOP2组合
 function getComboFromProfile(profile) {
   if (!profile || !profile.dims) return 'dec+rel';
   const entries = Object.entries(profile.dims).sort((a,b) => b[1] - a[1]);
@@ -1534,73 +1519,42 @@ function getComboFromProfile(profile) {
   return top2;
 }
 
-// 主函数：生成匹配解析
-function generateMatchAnalysis(profileA, profileB, matchPercent) {
+function generateMatchHTML(profileA, profileB, matchPercent) {
   const combo1 = getComboFromProfile(profileA);
   const combo2 = getComboFromProfile(profileB);
-
   const name1 = COMBO_NAMES[combo1] || '未知旅者';
   const name2 = COMBO_NAMES[combo2] || '未知旅者';
-
   const key1 = `${combo1}|${combo2}`;
   const key2 = `${combo2}|${combo1}`;
   let analysis = MATCH_STORIES[key1] || MATCH_STORIES[key2];
-
   if (!analysis) analysis = generateDynamicAnalysis(combo1, combo2, matchPercent);
-
-  return {
-    percent: matchPercent,
-    typeA: name1,
-    typeB: name2,
-    analysis: analysis,
-    advice: generateAdvice(matchPercent)
-  };
-}
-
-// 渲染匹配结果（不带释义，只显示组合解析）
-function renderMatchResult(profileA, profileB, percent, containerId) {
-  const r = generateMatchAnalysis(profileA, profileB, percent);
-  const html = `
+  
+  return `
     <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:24px;margin-top:20px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
         <div style="text-align:center;flex:1;">
-          <div style="font-size:14px;color:#aaa;">${r.typeA}</div>
+          <div style="font-size:14px;color:#aaa;">${name1}</div>
         </div>
         <div style="text-align:center;padding:0 20px;">
-          <div style="font-size:32px;font-weight:bold;color:#ff6b6b;">${r.percent}%</div>
+          <div style="font-size:32px;font-weight:bold;color:#ff6b6b;">${matchPercent}%</div>
           <div style="font-size:12px;color:#888;">契合度</div>
         </div>
         <div style="text-align:center;flex:1;">
-          <div style="font-size:14px;color:#aaa;">${r.typeB}</div>
+          <div style="font-size:14px;color:#aaa;">${name2}</div>
         </div>
       </div>
-
       <div style="background:rgba(0,0,0,0.2);border-radius:12px;padding:16px;margin-bottom:16px;">
         <div style="font-size:16px;font-weight:bold;color:#ffd700;margin-bottom:8px;">🔮 相遇解析</div>
-        <div style="font-size:14px;color:#ddd;line-height:1.6;">${r.analysis}</div>
+        <div style="font-size:14px;color:#ddd;line-height:1.6;">${analysis}</div>
       </div>
-
       <div style="background:rgba(0,0,0,0.2);border-radius:12px;padding:16px;">
         <div style="font-size:16px;font-weight:bold;color:#4ecdc4;margin-bottom:8px;">💡 相处建议</div>
-        <div style="font-size:14px;color:#ddd;line-height:1.6;">${r.advice}</div>
+        <div style="font-size:14px;color:#ddd;line-height:1.6;">${generateAdvice(matchPercent)}</div>
       </div>
     </div>
   `;
-  document.getElementById(containerId).innerHTML = html;
 }
 
-// 两人组合解析（供 runMatch 调用）
-function generateMatchHTML(profileA, profileB, score) {
-  const r = generateMatchAnalysis(profileA, profileB, score);
-  return [
-    '<div style="background:rgba(0,0,0,0.2);border-radius:12px;padding:16px;margin-bottom:16px;">',
-    '<div style="font-size:16px;font-weight:bold;color:#ffd700;margin-bottom:8px;">🔮 相遇解析：',r.typeA,' × ',r.typeB,'</div>',
-    '<div style="font-size:14px;color:#ddd;line-height:1.6;">',r.analysis,'</div></div>',
-    '<div style="background:rgba(0,0,0,0.2);border-radius:12px;padding:16px;">',
-    '<div style="font-size:16px;font-weight:bold;color:#4ecdc4;margin-bottom:8px;">💡 相处建议</div>',
-    '<div style="font-size:14px;color:#ddd;line-height:1.6;">',r.advice,'</div></div>'
-  ].join('');
-}
 </script>
 </body>
 </html>
