@@ -258,7 +258,6 @@
     <div class="glass" style="padding:24px;">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
         <h2><span class="title-ic">⚖️</span> 人格匹配</h2>
-        <span class="deflink" onclick="showAllDefs()">📖 点击查看全部维度释义</span>
       </div>
       <p class="sub" style="margin-bottom:8px;">选择存档自动填充 8 维滑块，亦可手动拖拽；匹配记录存入档案馆</p>
       <div class="grid2" style="margin-top:8px;">
@@ -1141,7 +1140,7 @@ function runMatch(){
   const ok=document.getElementById('matchOther').value;
   const od=window.other_dna_val||getOtherDims(ok);
   const m=computeMatch(sd,od);const locked=otherIsLocked(ok);
-  let html='<div class="frost"><h3>⚖️ 匹配结果</h3><p style="font-size:1.4rem;" class="h1">契合度 '+m.score+'%</p>';
+  let html='<div class="frost"><h3>⚖️ 匹配结果</h3>';
   html+='<h4 style="margin:12px 0 6px;">我方 8 维</h4>'+dnaBarsSimple(sd);
   if(locked){html+='<div class="frost" style="margin-top:12px;border:1px dashed var(--accent);"><p>🔒 对方完整人格数据已隐藏</p><p class="sub">请在档案馆对应公开档案页回答验证问题解锁</p></div>';}
   else{html+='<h4 style="margin:12px 0 6px;">对方 8 维</h4>'+dnaBarsSimple(od);}
@@ -1178,12 +1177,6 @@ function showDimDef(key,ev){
 }
 function closeDimDefOnce(){closeDimDef();document.removeEventListener('click',closeDimDefOnce);}
 function closeDimDef(){if(defCard){defCard.remove();defCard=null;}}
-function showAllDefs(){
-  const box=document.getElementById('matchResult');
-  let h='<div class="frost"><h3>📖 全部维度释义</h3>';
-  DIMS.forEach(d=>{h+='<p style="margin:8px 0;"><span class="hl">'+d.name+'（'+d.tag+'）</span><br><span class="sub">'+d.def+'</span></p>';});
-  h+='</div>';box.innerHTML=h;switchTab('match');
-}
 
 // ---------- 塔罗 ----------
 let tarotDrawn=null;
